@@ -3,3 +3,9 @@ __pycache__/
 .DS_Store
 logs/
 plots/
+
+# onchain (Hardhat)
+onchain/node_modules/
+onchain/artifacts/
+onchain/cache/
+.env
