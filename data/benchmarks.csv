@@ -1,0 +1,25 @@
+model_id,benchmark,score,as_of,source_url,verified
+# GPQA-Diamond scores, calibrated 2026-06-07 from public leaderboards.
+# Source priority for cross-model comparability: a single harness (pricepertoken)
+# is preferred; AA / llm-stats used only for models pricepertoken lacks. Source
+# recorded per row. Overlaps cross-checked (e.g. Gemini 3.1 Pro = 94.1 on
+# pricepertoken, Artificial Analysis, and llm-stats; Qwen3.7 Max 92.3/92.4).
+# MMLU intentionally omitted: saturated >88% across frontier (methodology 6, "legacy").
+google/gemini-3.1-pro-preview,GPQA-Diamond,94.1,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+minimax/minimax-m3,GPQA-Diamond,92.9,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+qwen/qwen3.7-max,GPQA-Diamond,92.3,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+moonshotai/kimi-k2.6,GPQA-Diamond,91.1,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+deepseek/deepseek-v4-pro,GPQA-Diamond,88.8,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+anthropic/claude-opus-4.6,GPQA-Diamond,84.0,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+openai/gpt-oss-120b,GPQA-Diamond,78.2,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+deepseek/deepseek-r1,GPQA-Diamond,70.8,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+openai/gpt-oss-20b,GPQA-Diamond,68.8,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+meta-llama/llama-4-maverick,GPQA-Diamond,67.1,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+mistralai/mistral-medium-3.1,GPQA-Diamond,58.8,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+meta-llama/llama-3.1-70b-instruct,GPQA-Diamond,40.9,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+anthropic/claude-3.5-haiku,GPQA-Diamond,40.8,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+google/gemma-3-12b-it,GPQA-Diamond,34.9,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+meta-llama/llama-3.1-8b-instruct,GPQA-Diamond,25.9,2026-06-05,https://pricepertoken.com/leaderboards/benchmark/gpqa,yes
+openai/gpt-5.5,GPQA-Diamond,93.5,2026-06-05,https://artificialanalysis.ai/evaluations/gpqa-diamond,yes
+anthropic/claude-opus-4.8,GPQA-Diamond,93.6,2026-06-05,https://llm-stats.com/benchmarks/gpqa,yes
+z-ai/glm-5.1,GPQA-Diamond,86.2,2026-06-05,https://llm-stats.com/benchmarks/gpqa,yes
