@@ -20,7 +20,11 @@ launchctl kickstart -k gui/$(id -u)/com.beacon.collector
 tail -3 logs/collector.log
 ```
 
-It runs `scripts/collect.sh` daily at **12:00 local**, writing `data/snapshots/<UTC-date>.json`.
+It runs `scripts/collect.sh` daily at **12:00 local**, writing `data/snapshots/<UTC-date>.json`
+and then **auto-committing & pushing** any new snapshot to `origin/main`. The backup step is
+non-fatal and scoped to `data/snapshots/` — a push failure never breaks collection (the snapshot
+commits locally and retries next run), and it never auto-commits code you're editing. Auth uses the
+`osxkeychain` credential helper, which works in launchd's minimal environment (no `gh` needed).
 
 ## Manage
 ```bash
