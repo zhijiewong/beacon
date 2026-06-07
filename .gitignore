@@ -9,3 +9,4 @@ onchain/node_modules/
 onchain/artifacts/
 onchain/cache/
 .env
+site/
