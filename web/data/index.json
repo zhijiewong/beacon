@@ -1,0 +1,267 @@
+{
+  "as_of": "2026-06-07",
+  "model_count": 310,
+  "methodology_version": "0.1",
+  "benchmark": "GPQA-Diamond",
+  "tiers": [
+    {
+      "name": "frontier",
+      "threshold": 90,
+      "value_usd_per_mtok": 1.3679999999999999,
+      "spread": 11.22556788166931,
+      "n_qualifying": 6,
+      "provider_count": 6,
+      "cheapest_model": "moonshotai/kimi-k2.6",
+      "prices": [
+        0.5249999999999999,
+        1.3679999999999999,
+        1.875,
+        4.5,
+        10.0,
+        11.25
+      ],
+      "change_pct": 0.0
+    },
+    {
+      "name": "strong",
+      "threshold": 70,
+      "value_usd_per_mtok": 0.5249999999999999,
+      "spread": 19.04761904761905,
+      "n_qualifying": 11,
+      "provider_count": 8,
+      "cheapest_model": "minimax/minimax-m3",
+      "prices": [
+        0.07425,
+        0.5249999999999999,
+        0.54375,
+        1.15,
+        1.3679999999999999,
+        1.505,
+        1.875,
+        4.5,
+        10.0,
+        10.0,
+        11.25
+      ],
+      "change_pct": 0.0
+    },
+    {
+      "name": "gpt-4-class",
+      "threshold": 50,
+      "value_usd_per_mtok": 0.05675000000000001,
+      "spread": 76.49646203863072,
+      "n_qualifying": 14,
+      "provider_count": 10,
+      "cheapest_model": "openai/gpt-oss-20b",
+      "prices": [
+        0.05675000000000001,
+        0.07425,
+        0.26249999999999996,
+        0.5249999999999999,
+        0.54375,
+        0.8,
+        1.15,
+        1.3679999999999999,
+        1.505,
+        1.875,
+        4.5,
+        10.0,
+        10.0,
+        11.25
+      ],
+      "change_pct": 0.0
+    }
+  ],
+  "key_figures": {
+    "providers_total": 54,
+    "multiple": 24.10572687224669
+  },
+  "onchain": {
+    "address": "0xD3676E36b645883E1554489A1F9D2860ce6e4997",
+    "explorer_url": "https://sepolia.basescan.org/address/0xD3676E36b645883E1554489A1F9D2860ce6e4997"
+  },
+  "charts": {
+    "scatter": [
+      {
+        "model": "minimax/minimax-m3",
+        "capability": 92.9,
+        "price": 0.5249999999999999
+      },
+      {
+        "model": "anthropic/claude-opus-4.8",
+        "capability": 93.6,
+        "price": 10.0
+      },
+      {
+        "model": "qwen/qwen3.7-max",
+        "capability": 92.3,
+        "price": 1.875
+      },
+      {
+        "model": "openai/gpt-5.5",
+        "capability": 93.5,
+        "price": 11.25
+      },
+      {
+        "model": "deepseek/deepseek-v4-pro",
+        "capability": 88.8,
+        "price": 0.54375
+      },
+      {
+        "model": "moonshotai/kimi-k2.6",
+        "capability": 91.1,
+        "price": 1.3679999999999999
+      },
+      {
+        "model": "z-ai/glm-5.1",
+        "capability": 86.2,
+        "price": 1.505
+      },
+      {
+        "model": "google/gemini-3.1-pro-preview",
+        "capability": 94.1,
+        "price": 4.5
+      },
+      {
+        "model": "anthropic/claude-opus-4.6",
+        "capability": 84.0,
+        "price": 10.0
+      },
+      {
+        "model": "mistralai/mistral-medium-3.1",
+        "capability": 58.8,
+        "price": 0.8
+      },
+      {
+        "model": "openai/gpt-oss-120b",
+        "capability": 78.2,
+        "price": 0.07425
+      },
+      {
+        "model": "openai/gpt-oss-20b",
+        "capability": 68.8,
+        "price": 0.05675000000000001
+      },
+      {
+        "model": "meta-llama/llama-4-maverick",
+        "capability": 67.1,
+        "price": 0.26249999999999996
+      },
+      {
+        "model": "google/gemma-3-12b-it",
+        "capability": 34.9,
+        "price": 0.0625
+      },
+      {
+        "model": "deepseek/deepseek-r1",
+        "capability": 70.8,
+        "price": 1.15
+      },
+      {
+        "model": "anthropic/claude-3.5-haiku",
+        "capability": 40.8,
+        "price": 1.6
+      },
+      {
+        "model": "meta-llama/llama-3.1-8b-instruct",
+        "capability": 25.9,
+        "price": 0.0225
+      },
+      {
+        "model": "meta-llama/llama-3.1-70b-instruct",
+        "capability": 40.9,
+        "price": 0.39999999999999997
+      }
+    ],
+    "frontier": [
+      [
+        25,
+        0.05675000000000001
+      ],
+      [
+        30,
+        0.05675000000000001
+      ],
+      [
+        35,
+        0.05675000000000001
+      ],
+      [
+        40,
+        0.05675000000000001
+      ],
+      [
+        45,
+        0.05675000000000001
+      ],
+      [
+        50,
+        0.05675000000000001
+      ],
+      [
+        55,
+        0.05675000000000001
+      ],
+      [
+        60,
+        0.05675000000000001
+      ],
+      [
+        65,
+        0.05675000000000001
+      ],
+      [
+        70,
+        0.5249999999999999
+      ],
+      [
+        75,
+        0.5249999999999999
+      ],
+      [
+        80,
+        0.5249999999999999
+      ],
+      [
+        85,
+        0.5249999999999999
+      ],
+      [
+        90,
+        1.3679999999999999
+      ]
+    ],
+    "trend": {
+      "frontier": [
+        [
+          "2026-06-06",
+          1.3679999999999999
+        ],
+        [
+          "2026-06-07",
+          1.3679999999999999
+        ]
+      ],
+      "strong": [
+        [
+          "2026-06-06",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-07",
+          0.5249999999999999
+        ]
+      ],
+      "gpt-4-class": [
+        [
+          "2026-06-06",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-07",
+          0.05675000000000001
+        ]
+      ]
+    }
+  }
+}

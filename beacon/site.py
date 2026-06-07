@@ -408,8 +408,13 @@ def main() -> int:
     trend_svg = _trend_svg({name: by_thr[thr] for name, thr in feeds.DEFAULT_TIERS})
 
     SITE_DIR.mkdir(exist_ok=True)
-    # keep index.json lean (drop the inline SVG strings)
+    # index.json = the public data feed (drop inline SVGs; add raw chart series)
     public = {**context, "tiers": [{k: v for k, v in t.items() if k != "spark_svg"} for t in context["tiers"]]}
+    public["charts"] = {
+        "scatter": [{"model": m, "capability": c, "price": p} for m, c, p in pts],
+        "frontier": [[t, v] for t, v in frontier],
+        "trend": {name: by_thr[thr] for name, thr in feeds.DEFAULT_TIERS},
+    }
     (SITE_DIR / "index.html").write_text(render_html(context, frontier_svg, distribution_svg, trend_svg))
     (SITE_DIR / "index.json").write_text(json.dumps(public, indent=2))
     print(f"Wrote dashboard ({len(context['tiers'])} tiers, as of {context['as_of']}, "
