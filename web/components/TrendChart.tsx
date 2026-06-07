@@ -1,6 +1,9 @@
 "use client";
 import { AreaChart } from "@tremor/react";
-import { Context, TIER_LABEL, TIER_COLOR } from "@/lib/types";
+import { Context, TIER_LABEL } from "@/lib/types";
+
+// Tremor named colors closest to the almanac palette (vermilion / slate / ochre).
+const TREMOR_COLOR: Record<string, string> = { frontier: "orange", strong: "blue", "gpt-4-class": "amber" };
 
 export default function TrendChart({ ctx }: { ctx: Context }) {
   const trend = ctx.charts.trend;
@@ -19,7 +22,7 @@ export default function TrendChart({ ctx }: { ctx: Context }) {
     return row;
   });
   const categories = names.map((n) => TIER_LABEL[n] || n);
-  const colors = names.map((n) => TIER_COLOR[n] || "#18140D");
+  const colors = names.map((n) => TREMOR_COLOR[n] || "gray");
 
   return (
     <AreaChart

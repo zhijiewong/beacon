@@ -51,8 +51,12 @@ const config: Config = {
     },
   },
   safelist: [
-    { pattern: /^(bg|text|border|ring|stroke|fill)-(sig|ink|slate|ochre|soft|hair)/ },
-    { pattern: /^(text|bg|border|ring|stroke|fill)-(tremor|paper)/ },
+    // Tremor applies color classes dynamically — keep them from being purged.
+    {
+      pattern: /^(bg|text|border|ring|fill|stroke)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(50|100|200|300|400|500|600|700|800|900|950)$/,
+      variants: ["hover", "ui-selected"],
+    },
+    { pattern: /^(bg|text|border|ring|stroke|fill)-(sig|ink|ochre|soft|hair|paper|paper2)/ },
   ],
   plugins: [],
 };
