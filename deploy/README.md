@@ -20,11 +20,14 @@ launchctl kickstart -k gui/$(id -u)/com.beacon.collector
 tail -3 logs/collector.log
 ```
 
-It runs `scripts/collect.sh` daily at **12:00 local**, writing `data/snapshots/<UTC-date>.json`
-and then **auto-committing & pushing** any new snapshot to `origin/main`. The backup step is
-non-fatal and scoped to `data/snapshots/` — a push failure never breaks collection (the snapshot
-commits locally and retries next run), and it never auto-commits code you're editing. Auth uses the
-`osxkeychain` credential helper, which works in launchd's minimal environment (no `gh` needed).
+It runs `scripts/collect.sh` daily at **12:00 local**, which does three things, each non-fatal so a
+later step's failure never breaks an earlier one:
+1. **Collect** — write `data/snapshots/<UTC-date>.json`.
+2. **Back up** — auto-commit & push any new snapshot to `origin/main` (scoped to `data/snapshots/`,
+   so it never commits code you're editing; auth via `osxkeychain`, no `gh` needed).
+3. **Publish on-chain** — post the index to the `BeaconOracle` on Base Sepolia (refreshes each feed's
+   `updatedAt` as a liveness heartbeat). Requires `onchain/.env` + `onchain/deployed.json`; skipped if
+   absent. `node` is found via `NODE_BIN=/opt/homebrew/bin` (launchd's PATH is minimal).
 
 ## Manage
 ```bash

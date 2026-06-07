@@ -7,6 +7,7 @@ set -euo pipefail
 PROJECT="/Users/yvon.zhu/Developer/beacon"
 PYTHON="/usr/bin/python3"
 GIT="/usr/bin/git"
+NODE_BIN="/opt/homebrew/bin"   # so launchd's minimal PATH can find node/hardhat
 LOG="$PROJECT/logs/collector.log"
 
 cd "$PROJECT"
@@ -32,4 +33,24 @@ if [ -n "$("$GIT" status --porcelain data/snapshots)" ]; then
   fi
 else
   echo "[$(date -u +%FT%TZ)] backup: no snapshot change" >> "$LOG"
+fi
+
+# --- Publish the index to the on-chain oracle (Base Sepolia). Non-fatal: an
+# RPC/gas/key problem must never break collection or backup. Posts daily even if
+# values are unchanged, which refreshes each feed's on-chain `updatedAt` (a
+# liveness heartbeat for consumers' staleness checks). Requires onchain/.env
+# (publisher key) and onchain/deployed.json (contract address). ---
+ONCHAIN="$PROJECT/onchain"
+if [ -f "$ONCHAIN/.env" ] && [ -f "$ONCHAIN/deployed.json" ]; then
+  echo "[$(date -u +%FT%TZ)] onchain: publishing to Base Sepolia..." >> "$LOG"
+  if ( cd "$ONCHAIN" \
+       && set -a && . ./.env && set +a \
+       && PATH="$NODE_BIN:$PATH" CI=true HARDHAT_DISABLE_TELEMETRY_PROMPT=true \
+          node_modules/.bin/hardhat run scripts/publish.js --network baseSepolia ) >> "$LOG" 2>&1; then
+    echo "[$(date -u +%FT%TZ)] onchain: ok" >> "$LOG"
+  else
+    echo "[$(date -u +%FT%TZ)] onchain: publish FAILED (non-fatal)" >> "$LOG"
+  fi
+else
+  echo "[$(date -u +%FT%TZ)] onchain: skipped (.env or deployed.json missing)" >> "$LOG"
 fi
