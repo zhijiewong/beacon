@@ -48,6 +48,29 @@ class BuildContext(unittest.TestCase):
         ctx = site.build_context(SNAPSHOT, CAP, None, tiers=TIERS)
         self.assertIsNone(ctx["onchain"])
 
+    def test_tier_detail_cheapest_model_providers_prices(self):
+        ctx = site.build_context(SNAPSHOT, CAP, "0xABC", tiers=TIERS)
+        by = {t["name"]: t for t in ctx["tiers"]}
+        self.assertEqual(by["lo"]["cheapest_model"], "c")   # 0.5 is cheapest qualifying
+        self.assertEqual(by["lo"]["provider_count"], 3)
+        self.assertEqual(sorted(by["lo"]["prices"]), [0.5, 1.0, 2.0])
+        self.assertEqual(by["mid"]["cheapest_model"], "a")  # 1.0 cheapest of a,b
+        self.assertEqual(by["mid"]["provider_count"], 2)
+
+    def test_key_figures(self):
+        ctx = site.build_context(SNAPSHOT, CAP, "0xABC", tiers=TIERS)
+        kf = ctx["key_figures"]
+        self.assertEqual(kf["providers_total"], 3)
+        self.assertAlmostEqual(kf["multiple"], 4.0)  # hi 2.0 / lo 0.5
+
+
+class PctChange(unittest.TestCase):
+    def test_change_vs_previous_point(self):
+        self.assertAlmostEqual(site.pct_change([("d1", 1.0), ("d2", 0.5)]), -50.0)
+
+    def test_none_when_too_short(self):
+        self.assertIsNone(site.pct_change([("d1", 1.0)]))
+
 
 if __name__ == "__main__":
     unittest.main()
