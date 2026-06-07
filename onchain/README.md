@@ -16,7 +16,11 @@ npm test            # Hardhat unit tests for BeaconOracle
 ```
 
 ## End-to-end local demo (free, no wallet)
-Run a local chain, deploy, then publish the real index and read it back:
+Quickest — one in-process run that deploys, posts the real index, and verifies read-back:
+```bash
+npx hardhat run scripts/demo.js
+```
+Or against a persistent local chain (mirrors the Base Sepolia flow):
 ```bash
 npx hardhat node &                                   # local chain on :8545
 npx hardhat run scripts/deploy.js  --network localhost
