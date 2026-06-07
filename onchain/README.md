@@ -4,6 +4,12 @@ A minimal, push-based price oracle: the off-chain Beacon index (Python) is poste
 `BeaconOracle.sol` so contracts/agents can read the rate on-chain. **Testnet only — not
 audited. Do not point a real-funds key at this.** See `../docs/phase2-onchain-oracle-design.md`.
 
+## Live deployment (Base Sepolia testnet)
+- **Contract:** `0xD3676E36b645883E1554489A1F9D2860ce6e4997`
+- **Explorer:** https://sepolia.basescan.org/address/0xD3676E36b645883E1554489A1F9D2860ce6e4997
+- Read a feed: `getFeed(keccak256("GPQA-Diamond:frontier"))` → value in 8-decimal $/Mtok.
+  (Redeploys produce a new address; `deployed.json` holds the latest.)
+
 ## Setup
 ```bash
 cd onchain

@@ -39,9 +39,15 @@ async function main() {
     try {
       const tx = await oracle.postFeed(id, value, mver, date);
       await tx.wait();
-      // read back and verify on-chain value matches what we posted
-      const onchain = (await oracle.getFeed(id)).value;
-      const ok = onchain === value;
+      // Read back and verify. Public RPCs are load-balanced, so a read right
+      // after a write can hit a lagging node; retry a few times before failing.
+      let onchain = 0n;
+      let ok = false;
+      for (let attempt = 0; attempt < 6 && !ok; attempt++) {
+        onchain = (await oracle.getFeed(id)).value;
+        ok = onchain === value;
+        if (!ok) await new Promise((r) => setTimeout(r, 2000));
+      }
       console.log(
         `  ${ok ? "OK " : "MISMATCH"} ${f.feed}: $${f.value_usd_per_mtok.toFixed(6)}/Mtok ` +
         `-> ${value} (on-chain ${onchain})  tx ${tx.hash}`
