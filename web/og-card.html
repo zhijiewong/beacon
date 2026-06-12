@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{background:#F3F0E7;color:#18140D;font-family:'IBM Plex Mono',monospace;
+    padding:64px 72px;position:relative;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
+  .mast{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #18140D;padding-bottom:18px}
+  .wm{font-family:'Instrument Serif',serif;font-size:88px;line-height:.8}
+  .tag{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:#6A6354;text-align:right;line-height:1.5}
+  .lede{font-family:'Instrument Serif',serif;font-size:104px;line-height:1.0;letter-spacing:-.01em;margin-top:64px;max-width:15ch}
+  .sub{font-size:20px;color:#3a352b;margin-top:18px;max-width:46ch;line-height:1.5;font-family:'IBM Plex Mono',monospace}
+  .foot{position:absolute;left:72px;right:72px;bottom:60px;display:flex;justify-content:space-between;align-items:center;
+    font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#6A6354;border-top:1px solid #D7D0BF;padding-top:18px}
+  .foot .u{color:#18140D;border-bottom:2px solid #C8431B}
+  .chart{position:absolute;right:72px;top:230px;opacity:.9}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#C8431B;margin-right:8px;vertical-align:middle}
+</style></head>
+<body>
+  <div class="mast">
+    <div class="wm">Beacon</div>
+    <div class="tag">The Reference Rate<br>for AI Inference</div>
+  </div>
+  <div class="lede">What a unit of intelligence costs.</div>
+  <div class="sub"><span class="dot"></span>The cheapest price to reach a fixed AI capability — across every major model.</div>
+  <svg class="chart" width="360" height="200" viewBox="0 0 360 200">
+    <g stroke="#D7D0BF"><line x1="0" y1="50" x2="360" y2="50"/><line x1="0" y1="110" x2="360" y2="110"/><line x1="0" y1="170" x2="360" y2="170"/></g>
+    <path d="M0 168 L150 168 L185 96 L260 96 L300 60" fill="none" stroke="#C8431B" stroke-width="4"/>
+    <g fill="#18140D" opacity=".3"><circle cx="40" cy="172" r="5"/><circle cx="120" cy="150" r="5"/><circle cx="200" cy="92" r="5"/><circle cx="250" cy="70" r="5"/><circle cx="320" cy="44" r="5"/><circle cx="300" cy="58" r="5"/></g>
+  </svg>
+  <div class="foot">
+    <span>Capability-normalized · Updated daily · Published on-chain</span>
+    <span class="u">zhijiewong.github.io/beacon-index</span>
+  </div>
+</body></html>
