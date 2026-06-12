@@ -1,0 +1,6 @@
+series,date,model,mmlu,blended_usd_per_mtok,source
+# Historical iso-capability anchor points for the Phase-1 acceptance test
+# (docs/acceptance-test.md). Figures are a16z's published LLMflation numbers.
+# The MMLU-42 series is a16z's headline: cheapest price to reach MMLU>=42 over time.
+MMLU-42,2021-11,GPT-3 (davinci),43.9,60.0,https://a16z.com/llmflation-llm-inference-cost/
+MMLU-42,2024-10,Llama 3.2 3B (Together.ai),63.4,0.06,https://a16z.com/llmflation-llm-inference-cost/

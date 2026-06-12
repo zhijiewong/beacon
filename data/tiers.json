@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "primary_benchmark": "GPQA-Diamond",
+  "base_date": "2026-06-06",
+  "_note": "Capability tiers (methodology section 6). Thresholds are on the primary benchmark. GPQA-Diamond is the only calibrated discriminator in 2026 (see methodology section 6.1); add a tier with a new benchmark only once a clean, broad-coverage, single-harness benchmark exists.",
+  "tiers": [
+    { "name": "frontier", "benchmark": "GPQA-Diamond", "threshold": 90 },
+    { "name": "strong", "benchmark": "GPQA-Diamond", "threshold": 70 },
+    { "name": "gpt-4-class", "benchmark": "GPQA-Diamond", "threshold": 50 }
+  ]
+}

@@ -121,29 +121,30 @@ blended_price = (3 × input_usd_per_mtok + 1 × output_usd_per_mtok) / 4
 
 ## 6. Capability measurement
 
-A model's capability is a **vector** of benchmark scores, not a single number. For v1 the benchmark
-set `B` is:
+A model's capability is a **vector** of benchmark scores, not a single number. The benchmark set `B`
+and its 2026 status:
 
-| Domain | Benchmark | Why |
-|--------|-----------|-----|
-| Knowledge/reasoning | GPQA-Diamond | Hard, frontier-discriminating, widely reported |
-| Math | AIME 2024–2025 | Reasoning depth, low saturation |
-| Coding | SWE-bench Verified | Real-world agentic coding, economically meaningful |
-| General (legacy) | MMLU | Long history → enables multi-year iso-quality curves |
+| Domain | Benchmark | Status (2026) |
+|--------|-----------|---------------|
+| Knowledge/reasoning | **GPQA-Diamond** | **Primary — calibrated.** Spans ~26–94 across our model set; the best single frontier discriminator available. |
+| Coding | SWE-bench Pro | Candidate. Discriminates, but **no consistent public harness yet** (same model scores 47–80% across vendor / Scale-SEAL / private splits — not cross-comparable). Not calibrated until one broad-coverage harness exists. |
+| Math | AIME-2026 | Candidate. Coverage sparse mid-2026 ("dataset soon"). Not yet calibrated. |
+| Math (legacy) | AIME-2025 | **Saturated** at the frontier (92–100%) — retired as a discriminator. |
+| Coding (legacy) | SWE-bench Verified | **Saturating** (frontier compressed 77–89%); OpenAI stopped reporting it. Superseded by SWE-bench Pro. |
+| General (legacy) | MMLU | **Saturated** (>88% across frontier). Retained only for multi-year back-compat. |
 
-**Tier qualification.** A tier `T` is defined by a **threshold vector** over a chosen primary
-benchmark (and optional secondary gates). A listing's model *qualifies for tier T* if its score on the
-tier's primary benchmark ≥ the tier threshold (and meets any secondary gates). Example tiers:
+### 6.1 Benchmark-landscape finding (2026)
+A capability index is only as good as a benchmark that still *discriminates*. As of mid-2026 most
+public benchmarks have saturated at the frontier (MMLU, AIME-2025, increasingly SWE-bench Verified), and
+the harder successors are not yet usable as cross-model axes: **AIME-2026** has sparse coverage, and
+**SWE-bench Pro** lacks a single consistent public harness. **GPQA-Diamond therefore remains Beacon's
+primary capability axis.** A second axis is added only when a clean, broadly-covered, single-harness
+benchmark exists — adding a half-covered or harness-inconsistent benchmark would *degrade* the rate's
+credibility, not improve it. This benchmark-quality discipline is itself part of the methodology.
 
-| Tier name | Primary gate (illustrative — finalized in v1 calibration) |
-|-----------|-----------------------------------------------------------|
-| `Frontier` | Top decile of currently-available models on the primary benchmark |
-| `GPT-4-class` | GPQA-D ≥ X₁ (and MMLU ≥ Y₁ for back-compat) |
-| `GPT-3.5-class` | MMLU ≥ Y₂ |
-
-> Exact thresholds are deliberately **not hard-coded here**; they are set in a separate, versioned
-> `tiers.yaml` during v1 calibration and changed only via the §10 process. This keeps the *method*
-> stable while allowing the *calibration* to be transparent and auditable.
+**Tier qualification.** A tier `T` is a threshold on the primary benchmark; a listing qualifies if its
+model's score ≥ the threshold. Thresholds live in a versioned **`tiers.json`** (not hard-coded), changed
+only via the §10 process — keeping the *method* stable while the *calibration* stays transparent.
 
 ---
 

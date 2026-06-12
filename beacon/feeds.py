@@ -10,10 +10,12 @@ import json
 import sys
 from typing import Dict, List, Sequence, Tuple
 
-from beacon import analyze
+from beacon import analyze, tiers as tiers_cfg
 
-# Default GPQA-Diamond tiers posted on-chain (methodology section 6 / 7).
-DEFAULT_TIERS = [("frontier", 90), ("strong", 70), ("gpt-4-class", 50)]
+# Tiers + primary benchmark come from data/tiers.json (methodology section 6).
+_CFG = tiers_cfg.load_tiers()
+PRIMARY_BENCHMARK = _CFG["primary_benchmark"]
+DEFAULT_TIERS = _CFG["tiers"]
 
 
 def build_feeds(
@@ -50,7 +52,7 @@ def main() -> int:
         print(json.dumps({"error": "no verified benchmarks; calibrate first"}))
         return 1
 
-    feeds = build_feeds(snapshot["listings"], cap, "GPQA-Diamond", DEFAULT_TIERS)
+    feeds = build_feeds(snapshot["listings"], cap, PRIMARY_BENCHMARK, DEFAULT_TIERS)
     payload = {
         "snapshot_date": snapshot["observed_at"].replace("-", ""),  # e.g. 20260606
         "methodology_version": snapshot.get("methodology_version", "0.1"),

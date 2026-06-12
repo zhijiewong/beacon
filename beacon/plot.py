@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from beacon import analyze, index
+from beacon import analyze, index, tiers as tiers_cfg
 
 PLOTS_DIR = analyze.DATA_DIR.parent / "plots"
 
@@ -195,7 +195,7 @@ def main() -> int:
         return 1
 
     PLOTS_DIR.mkdir(exist_ok=True)
-    bench = "GPQA-Diamond"
+    bench = tiers_cfg.PRIMARY_BENCHMARK
 
     if len(snapshots) >= 2:
         tiers = {"frontier(>=90)": 90, "strong(>=70)": 70, "gpt-4-class(>=50)": 50}

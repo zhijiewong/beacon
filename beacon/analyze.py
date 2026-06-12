@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from beacon import index
+from beacon import index, tiers as tiers_cfg
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
@@ -109,7 +109,7 @@ def main() -> int:
     # thresholds belong in tiers.json during full calibration.
     print("  GPQA-Diamond capability tiers (iso-quality = cheapest $/Mtok to reach):")
     for name, threshold in [("frontier", 90), ("strong", 70), ("gpt-4-class", 50), ("broad", 0)]:
-        tier = compute_tier(snapshot["listings"], cap, "GPQA-Diamond", threshold)
+        tier = compute_tier(snapshot["listings"], cap, tiers_cfg.PRIMARY_BENCHMARK, threshold)
         iso = tier["iso_quality"]
         iso_s = f"${iso:.3f}/Mtok" if iso is not None else "n/a"
         spread_s = f"{tier['spread']:.2f}x" if tier["spread"] is not None else "n/a"

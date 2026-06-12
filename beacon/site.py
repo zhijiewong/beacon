@@ -56,7 +56,7 @@ def _tier_detail(listings, cap, benchmark, threshold) -> dict:
 
 
 def build_context(snapshot, cap, onchain_address, tiers=feeds.DEFAULT_TIERS,
-                  benchmark="GPQA-Diamond") -> dict:
+                  benchmark=feeds.PRIMARY_BENCHMARK) -> dict:
     listings = snapshot["listings"]
     rows = []
     for name, threshold in tiers:
