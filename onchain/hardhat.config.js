@@ -8,8 +8,9 @@ require("@nomicfoundation/hardhat-chai-matchers");
  */
 module.exports = {
   solidity: {
-    version: "0.8.24",
-    settings: { optimizer: { enabled: true, runs: 200 } },
+    version: "0.8.28",
+    // Cancun EVM (Base supports it) — required by OpenZeppelin 5.6's mcopy usage.
+    settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" },
   },
   networks: {
     baseSepolia: {
