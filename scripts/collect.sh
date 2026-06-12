@@ -54,3 +54,34 @@ if [ -f "$ONCHAIN/.env" ] && [ -f "$ONCHAIN/deployed.json" ]; then
 else
   echo "[$(date -u +%FT%TZ)] onchain: skipped (.env or deployed.json missing)" >> "$LOG"
 fi
+
+# --- Publish the public dashboard: regenerate -> rebuild (Next.js static export)
+# -> deploy to the beacon-index GitHub Pages repo. Non-fatal: a build/push problem
+# must never break collection/backup/on-chain. Only deploys when files changed.
+# Requires web/node_modules (npm install) and web/.deploy (clone of beacon-index). ---
+WEB="$PROJECT/web"
+DEPLOY="$WEB/.deploy"
+if [ -d "$WEB/node_modules" ] && [ -d "$DEPLOY/.git" ]; then
+  echo "[$(date -u +%FT%TZ)] dashboard: rebuilding + deploying..." >> "$LOG"
+  if (
+    cd "$PROJECT"
+    "$PYTHON" -m beacon.site >/dev/null
+    cp site/index.json "$WEB/data/index.json"
+    cd "$WEB"
+    PATH="$NODE_BIN:$PATH" BASE_PATH=/beacon-index CI=true npm run build >/dev/null
+    touch out/.nojekyll
+    /usr/bin/rsync -a --delete --exclude='.git' out/ "$DEPLOY/"
+    cd "$DEPLOY"
+    "$GIT" add -A
+    if ! "$GIT" diff --cached --quiet; then
+      "$GIT" commit -q -m "dashboard: $(date -u +%F)"
+      "$GIT" push -q origin main
+    fi
+  ) >> "$LOG" 2>&1; then
+    echo "[$(date -u +%FT%TZ)] dashboard: ok" >> "$LOG"
+  else
+    echo "[$(date -u +%FT%TZ)] dashboard: FAILED (non-fatal)" >> "$LOG"
+  fi
+else
+  echo "[$(date -u +%FT%TZ)] dashboard: skipped (web/node_modules or web/.deploy missing)" >> "$LOG"
+fi
