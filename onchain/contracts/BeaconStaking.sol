@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /// @title BeaconStaking — Oracle Integrity Staking (Pyth-style) for the Beacon rate
 /// @notice Publishers self-stake BEACON to back the accuracy of the feeds they post;
@@ -16,7 +17,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 ///         asset value of a position; `poolStake` is the pool's total assets.
 ///         TESTNET ONLY — unaudited; needs a professional audit before any real value.
 ///         Staking pulls BEACON via transferFrom (stakers pre-approve this contract).
-contract BeaconStaking is ReentrancyGuard, Ownable {
+contract BeaconStaking is ReentrancyGuard, Ownable2Step {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable beacon;

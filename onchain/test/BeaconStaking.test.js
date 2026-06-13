@@ -67,4 +67,13 @@ describe("BeaconStaking", function () {
     await staking.connect(pub).withdraw(pub.address);
     expect(await token.balanceOf(pub.address)).to.equal(before + 400n * E18);
   });
+
+  it("transfers ownership in two steps (no accidental hand-off)", async () => {
+    const { staking, deployer, other } = await setup();
+    await staking.connect(deployer).transferOwnership(other.address);
+    expect(await staking.owner()).to.equal(deployer.address); // not transferred yet
+    expect(await staking.pendingOwner()).to.equal(other.address);
+    await staking.connect(other).acceptOwnership();
+    expect(await staking.owner()).to.equal(other.address);
+  });
 });

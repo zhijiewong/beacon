@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /// @notice Subset of BeaconStaking the oracle needs: gate submissions on eligibility
 ///         and trigger deviation slashing.
@@ -22,7 +23,7 @@ interface IBeaconStaking {
 ///         median and slashing, so a publisher isn't judged on data it didn't restate.
 /// @dev    TESTNET ONLY — unaudited. Round model: submissions accumulate until anyone
 ///         (subject to a quorum) finalizes; finalizing clears the round.
-contract BeaconOracleV2 is Ownable {
+contract BeaconOracleV2 is Ownable2Step {
     IBeaconStaking public immutable staking;
 
     /// Hard cap on the configurable slash — equals staking's MAX_SLASH_BPS so that
