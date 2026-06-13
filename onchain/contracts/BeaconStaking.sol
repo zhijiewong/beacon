@@ -33,6 +33,8 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     uint256 public constant REWARD_EPOCH = 7 days;
     /// Fixed-point precision for the reward-per-share accumulator.
     uint256 private constant ACC_PRECISION = 1e30;
+    /// Unity for the unbonding haircut factor (1.0 in 1e18 fixed-point).
+    uint256 private constant ONE = 1e18;
 
     /// Where slashed tokens are sent (governance / insurance fund). Defaults to owner.
     address public slashTreasury;
@@ -68,9 +70,15 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     struct Unbond {
         uint256 amount; // assets released from the pool, awaiting withdrawal
         uint256 readyAt; // timestamp the tokens become withdrawable
+        uint256 scaleAtRequest; // unbondScale snapshot when requested (for slash haircuts)
     }
     /// publisher => staker => pending unbond for that (publisher, staker) position.
     mapping(address => mapping(address => Unbond)) public unbonding;
+    /// publisher => total assets currently unbonding (still slashable during cooldown).
+    mapping(address => uint256) public totalUnbonding;
+    /// publisher => cumulative unbonding haircut factor (ONE = untouched). A slash multiplies
+    /// it down so every pending unbond in that pool is cut pro-rata. 0 is treated as ONE.
+    mapping(address => uint256) public unbondScale;
 
     event SelfStaked(address indexed publisher, uint256 amount);
     event Delegated(address indexed publisher, address indexed delegator, uint256 amount);
@@ -167,37 +175,70 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
         poolStake[publisher] -= amount;
         rewardDebt[publisher][msg.sender] = (sharesOf[publisher][msg.sender] * accRewardPerShare[publisher]) / ACC_PRECISION;
 
+        // Move the assets into the unbonding queue, where they stay slashable until
+        // withdrawal. A prior pending unbond is re-based to the current haircut factor
+        // (locking in slashes it already took) before the new amount is added.
+        uint256 s = _unbondScale(publisher);
         Unbond storage u = unbonding[publisher][msg.sender];
+        if (u.amount > 0) {
+            u.amount = (u.amount * s) / u.scaleAtRequest;
+        }
         u.amount += amount;
+        u.scaleAtRequest = s;
         u.readyAt = block.timestamp + UNBOND_PERIOD;
+        totalUnbonding[publisher] += amount;
         emit UnstakeRequested(publisher, msg.sender, amount, u.readyAt);
     }
 
-    /// @notice After the cooldown, return the unbonded tokens to the staker.
+    /// @dev Current unbonding haircut factor for a pool (ONE if never slashed).
+    function _unbondScale(address publisher) internal view returns (uint256) {
+        uint256 s = unbondScale[publisher];
+        return s == 0 ? ONE : s;
+    }
+
+    /// @notice After the cooldown, return the unbonded tokens to the staker — net of any
+    ///         slashing that hit the pool while the stake was unbonding.
     function withdraw(address publisher) external nonReentrant {
         Unbond storage u = unbonding[publisher][msg.sender];
-        uint256 amount = u.amount;
-        require(amount > 0, "nothing to withdraw");
+        require(u.amount > 0, "nothing to withdraw");
         require(block.timestamp >= u.readyAt, "cooling down");
+        // Apply any haircut taken since the request: net = amount * scaleNow / scaleAtRequest.
+        uint256 net = (u.amount * _unbondScale(publisher)) / u.scaleAtRequest;
         delete unbonding[publisher][msg.sender];
-        beacon.safeTransfer(msg.sender, amount);
-        emit Withdrawn(publisher, msg.sender, amount);
+        // Keep the pool's unbonding total consistent (clamp for integer-division dust).
+        uint256 pending = totalUnbonding[publisher];
+        totalUnbonding[publisher] = pending > net ? pending - net : 0;
+        beacon.safeTransfer(msg.sender, net);
+        emit Withdrawn(publisher, msg.sender, net);
     }
 
     // --- slashing ----------------------------------------------------------
 
     /// @notice Slash a publisher's pool by `bps` basis points (capped at MAX_SLASH_BPS).
-    ///         Lowers the pool's assets, cutting every staker pro-rata, and sends the
-    ///         slashed tokens to the slash treasury. Governance-gated (owner) for now;
-    ///         a deviation-triggered automatic path lands with the v2 median oracle.
+    ///         Cuts BOTH active stake and stake that is unbonding — so a publisher can't
+    ///         dodge a slash by requesting an unstake first. Active stakers are cut
+    ///         pro-rata via the shares model; unbonding positions via the haircut factor.
+    ///         Slashed tokens go to the slash treasury. Owner or authorized slasher.
     function slash(address publisher, uint256 bps) external {
         require(msg.sender == owner() || msg.sender == slasher, "not authorized");
         require(bps > 0, "zero bps");
         require(bps <= MAX_SLASH_BPS, "slash too large");
-        uint256 assets = poolStake[publisher];
-        require(assets > 0, "empty pool");
-        uint256 cut = (assets * bps) / 10_000;
-        poolStake[publisher] = assets - cut; // shares unchanged -> pro-rata haircut
+        uint256 active = poolStake[publisher];
+        uint256 pending = totalUnbonding[publisher];
+        require(active + pending > 0, "empty pool");
+
+        uint256 activeCut = (active * bps) / 10_000;
+        poolStake[publisher] = active - activeCut; // shares unchanged -> pro-rata haircut
+
+        uint256 pendingCut = 0;
+        if (pending > 0) {
+            pendingCut = (pending * bps) / 10_000;
+            totalUnbonding[publisher] = pending - pendingCut;
+            // Multiply the haircut factor so every pending unbond is cut pro-rata on withdraw.
+            unbondScale[publisher] = (_unbondScale(publisher) * (10_000 - bps)) / 10_000;
+        }
+
+        uint256 cut = activeCut + pendingCut;
         beacon.safeTransfer(slashTreasury, cut);
         emit Slashed(publisher, cut, bps);
     }

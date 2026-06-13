@@ -70,4 +70,40 @@ describe("BeaconStaking — slashing", function () {
     expect(await staking.stakeOf(pub.address, del.address)).to.equal(950n * E18);
     expect(await staking.stakeOf(pub.address, pub.address)).to.equal(950n * E18);
   });
+
+  // Unbonding stake stays slashable during the cooldown — you can't dodge a slash by
+  // unstaking first (the classic OIS front-running hole).
+  it("slashes stake that is unbonding, so a pending unstake can't dodge it", async () => {
+    const { token, staking, deployer, pub, other } = await setup();
+    await staking.setSlashTreasury(other.address);
+    await staking.connect(pub).selfStake(MIN);
+    await staking.connect(pub).requestUnstake(pub.address, MIN); // move all to the cooldown queue
+    expect(await staking.poolStake(pub.address)).to.equal(0);
+
+    await staking.connect(deployer).slash(pub.address, 500); // 5% of the unbonding stake
+    expect(await token.balanceOf(other.address)).to.equal(50n * E18);
+
+    await ethers.provider.send("evm_increaseTime", [7 * 24 * 3600 + 1]);
+    await ethers.provider.send("evm_mine", []);
+    const before = await token.balanceOf(pub.address);
+    await staking.connect(pub).withdraw(pub.address);
+    expect(await token.balanceOf(pub.address)).to.equal(before + 950n * E18); // 1000 - 5%
+  });
+
+  it("splits a slash across active and unbonding stake", async () => {
+    const { token, staking, deployer, pub, other } = await setup();
+    await staking.setSlashTreasury(other.address);
+    await staking.connect(pub).selfStake(MIN);
+    await staking.connect(pub).requestUnstake(pub.address, 400n * E18); // 600 active, 400 unbonding
+
+    await staking.connect(deployer).slash(pub.address, 500); // 30 from active, 20 from unbonding
+    expect(await staking.poolStake(pub.address)).to.equal(570n * E18);
+    expect(await token.balanceOf(other.address)).to.equal(50n * E18);
+
+    await ethers.provider.send("evm_increaseTime", [7 * 24 * 3600 + 1]);
+    await ethers.provider.send("evm_mine", []);
+    const before = await token.balanceOf(pub.address);
+    await staking.connect(pub).withdraw(pub.address);
+    expect(await token.balanceOf(pub.address)).to.equal(before + 380n * E18); // 400 - 5%
+  });
 });
