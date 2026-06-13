@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-12",
+  "as_of": "2026-06-13",
   "model_count": 307,
   "methodology_version": "0.1",
   "benchmark": "GPQA-Diamond",
@@ -96,14 +96,14 @@
       {
         "name": "Integrity staking",
         "role": "Stake, delegate, slash, reward \u2014 economic security",
-        "address": "0xbC37A8595dB8c73e371C2a67504915EB04AcD233",
-        "explorer_url": "https://sepolia.basescan.org/address/0xbC37A8595dB8c73e371C2a67504915EB04AcD233"
+        "address": "0xfB62EaBB3B6884B8285b285333306943bB89C1FE",
+        "explorer_url": "https://sepolia.basescan.org/address/0xfB62EaBB3B6884B8285b285333306943bB89C1FE"
       },
       {
         "name": "Median oracle",
         "role": "Stake-weighted median; auto-slashes bad data",
-        "address": "0x804233701986925ddE41aDDC349F3179d0521A2f",
-        "explorer_url": "https://sepolia.basescan.org/address/0x804233701986925ddE41aDDC349F3179d0521A2f"
+        "address": "0x4Ac47694feEc64F15B69dfAac37c96Ac3ae9327D",
+        "explorer_url": "https://sepolia.basescan.org/address/0x4Ac47694feEc64F15B69dfAac37c96Ac3ae9327D"
       }
     ]
   },
@@ -283,6 +283,10 @@
         [
           "2026-06-12",
           1.3625
+        ],
+        [
+          "2026-06-13",
+          1.3625
         ]
       ],
       "strong": [
@@ -309,6 +313,10 @@
         [
           "2026-06-12",
           0.5249999999999999
+        ],
+        [
+          "2026-06-13",
+          0.5249999999999999
         ]
       ],
       "gpt-4-class": [
@@ -334,6 +342,10 @@
         ],
         [
           "2026-06-12",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-13",
           0.05675000000000001
         ]
       ]

@@ -185,12 +185,14 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
 |-------------|----------|--------|---------|
 | §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
 | §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
-| §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xbC37A8595dB8c73e371C2a67504915EB04AcD233` |
-| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 13 tests | `0x804233701986925ddE41aDDC349F3179d0521A2f` |
+| §7 OIS staking | `BeaconStaking.sol` | live, 18 tests | `0xfB62EaBB3B6884B8285b285333306943bB89C1FE` |
+| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 13 tests | `0x4Ac47694feEc64F15B69dfAac37c96Ac3ae9327D` |
 
-(38 tests total green. An earlier `BeaconStaking` at `0xe474…0Ed4` predated the `slasher`
-role and was superseded; oracle-v2 was redeployed at the address above when it gained
-stake-weighting + governable thresholds. v1 oracle stays live for the daily collector.)
+(43 tests total green. Addresses above are the current release; staking + oracle are
+redeployed together per release — earlier addresses were superseded as the contracts
+gained the `slasher` role, stake-weighting/governable thresholds/staleness, unbonding-
+slash, and two-step ownership. The deployed-record JSONs are the source of truth and the
+dashboard reads them. v1 oracle stays live for the daily collector.)
 
 **`BeaconStaking` (Oracle Integrity Staking) implements §7:**
 - **Self-stake / delegation.** Publishers self-stake BEACON; delegators back a publisher's
@@ -198,12 +200,16 @@ stake-weighting + governable thresholds. v1 oracle stays live for the daily coll
 - **Unbonding.** `requestUnstake` removes assets from the pool immediately and starts a
   7-day cooldown (`UNBOND_PERIOD`); `withdraw` returns tokens after it elapses.
 - **Eligibility.** `isEligiblePublisher` = self-stake ≥ `MIN_PUBLISHER_STAKE` (1000 BEACON).
-- **Slashing.** Owner-gated `slash(publisher, bps)` capped at `MAX_SLASH_BPS` (5%); lowers
-  pool assets → every staker cut pro-rata in O(1); slashed tokens routed to `slashTreasury`.
+- **Slashing.** `slash(publisher, bps)` (owner or authorized slasher) capped at
+  `MAX_SLASH_BPS` (5%); lowers pool assets → every active staker cut pro-rata in O(1) AND
+  haircuts stake that is **unbonding** (via a per-pool factor) so a publisher can't dodge a
+  slash by unstaking first; slashed tokens routed to `slashTreasury`.
 - **Rewards.** `distributeRewards` pays a stablecoin (`rewardToken`, e.g. USDC) pro-rata to
   shares via a MasterChef accumulator; publisher commission off the top (`MAX_FEE_BPS` 20%);
   per-pool per-epoch cap (`maxRewardPerEpoch`, `REWARD_EPOCH` 7d) bounds APY/gaming; `claim`
   pays out. Accrued rewards are independent of later slashing.
+- **Governance.** Two-step ownership (`Ownable2Step`) so admin can't be handed to a wrong
+  address by mistake.
 
 **`BeaconOracleV2` (multi-publisher median + auto-slash) evolves §4:**
 - Eligible publishers (self-stake ≥ `MIN_PUBLISHER_STAKE`) submit a value per feed id
