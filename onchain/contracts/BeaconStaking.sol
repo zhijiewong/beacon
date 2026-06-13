@@ -36,6 +36,9 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
 
     /// Where slashed tokens are sent (governance / insurance fund). Defaults to owner.
     address public slashTreasury;
+    /// Automated slasher (e.g. the median oracle's deviation trigger); 0 = none.
+    /// Can call slash() in addition to the owner.
+    address public slasher;
 
     /// Stablecoin rewards are paid in this token (e.g. USDC). Set by governance.
     IERC20 public rewardToken;
@@ -75,6 +78,7 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     event Withdrawn(address indexed publisher, address indexed staker, uint256 amount);
     event Slashed(address indexed publisher, uint256 amount, uint256 bps);
     event SlashTreasurySet(address indexed treasury);
+    event SlasherSet(address indexed slasher);
     event RewardTokenSet(address indexed token);
     event MaxRewardPerEpochSet(uint256 amount);
     event PublisherFeeSet(address indexed publisher, uint256 bps);
@@ -186,7 +190,8 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     ///         Lowers the pool's assets, cutting every staker pro-rata, and sends the
     ///         slashed tokens to the slash treasury. Governance-gated (owner) for now;
     ///         a deviation-triggered automatic path lands with the v2 median oracle.
-    function slash(address publisher, uint256 bps) external onlyOwner {
+    function slash(address publisher, uint256 bps) external {
+        require(msg.sender == owner() || msg.sender == slasher, "not authorized");
         require(bps > 0, "zero bps");
         require(bps <= MAX_SLASH_BPS, "slash too large");
         uint256 assets = poolStake[publisher];
@@ -202,6 +207,13 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
         require(treasury != address(0), "zero treasury");
         slashTreasury = treasury;
         emit SlashTreasurySet(treasury);
+    }
+
+    /// @notice Authorize an automated slasher (e.g. the median oracle), owner only.
+    ///         Pass address(0) to disable. The owner can always slash regardless.
+    function setSlasher(address slasher_) external onlyOwner {
+        slasher = slasher_;
+        emit SlasherSet(slasher_);
     }
 
     // --- rewards -----------------------------------------------------------

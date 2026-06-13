@@ -40,11 +40,15 @@ describe("BeaconStaking — slashing", function () {
     await expect(staking.connect(deployer).slash(pub.address, 501)).to.be.revertedWith("slash too large");
   });
 
-  it("only the owner can slash", async () => {
-    const { staking, pub, other } = await setup();
+  it("only the owner or the authorized slasher can slash", async () => {
+    const { staking, deployer, pub, del, other } = await setup();
     await staking.connect(pub).selfStake(MIN);
-    await expect(staking.connect(other).slash(pub.address, 100))
-      .to.be.revertedWithCustomError(staking, "OwnableUnauthorizedAccount");
+    // a random account cannot slash
+    await expect(staking.connect(other).slash(pub.address, 100)).to.be.revertedWith("not authorized");
+    // the owner authorizes `del` as the automated slasher, who can then slash
+    await staking.connect(deployer).setSlasher(del.address);
+    await staking.connect(del).slash(pub.address, 100);
+    expect(await staking.poolStake(pub.address)).to.equal(990n * E18); // -1%
   });
 
   it("slashing can drop a publisher below the eligibility threshold", async () => {
