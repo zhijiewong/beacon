@@ -185,7 +185,11 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
 |-------------|----------|--------|---------|
 | §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
 | §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
-| §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xe4746a7100188D80212AF6c5eFDDd3629d100Ed4` |
+| §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xbC37A8595dB8c73e371C2a67504915EB04AcD233` |
+| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher median + auto-slash) | live, 7 tests | `0x0e8faC8C185cb2ffDcA46371d45f743738e34AA2` |
+
+(33 tests total green. An earlier `BeaconStaking` at `0xe474…0Ed4` predated the `slasher`
+role and was superseded by the address above; v1 oracle stays live for the daily collector.)
 
 **`BeaconStaking` (Oracle Integrity Staking) implements §7:**
 - **Self-stake / delegation.** Publishers self-stake BEACON; delegators back a publisher's
@@ -200,6 +204,21 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
   per-pool per-epoch cap (`maxRewardPerEpoch`, `REWARD_EPOCH` 7d) bounds APY/gaming; `claim`
   pays out. Accrued rewards are independent of later slashing.
 
-**Still open (Stage 3, design §4 evolution):** a **multi-publisher median-aggregation oracle
-(v2)** and a **deviation-triggered automatic slash** path (today `slash` is governance-gated).
-Plus the §11 open questions and a professional audit before any mainnet/real value.
+**`BeaconOracleV2` (multi-publisher median + auto-slash) evolves §4:**
+- Eligible publishers (self-stake ≥ `MIN_PUBLISHER_STAKE`) submit a value per feed id
+  during a round; `postFeed` rejects non-eligible accounts.
+- `finalizeRound` (permissionless, quorum-gated via `minPublishers`) aggregates by
+  **median**, publishes it (`latestValue`), and **auto-slashes** any publisher whose
+  submission deviates > `MAX_DEVIATION_BPS` (10%) from the median by `DEVIATION_SLASH_BPS`
+  (5%), then clears the round. `BeaconStaking` gained a settable `slasher` role (the
+  oracle) so this can fire; the owner can still slash manually.
+
+**Verified live on Base Sepolia** (`scripts/demo-oracle-v2.js`): 3 publishers submit
+100 / 101 / 200 → median **101** published; the 200 outlier auto-slashed 1000 → 950 BEACON
+(−5%), the two honest publishers untouched. This is the Phase-2 proof point "slashing
+demonstrably deters a bad feed," done on a public testnet rather than only in unit tests.
+
+**Still open (Stage 3+):** wire the daily collector to publish through v2 (it still uses the
+single-publisher v1); make `MAX_DEVIATION_BPS`/`DEVIATION_SLASH_BPS`/staleness governable;
+recruit ≥2 independent publishers; the §11 open questions; and a **professional audit before
+any mainnet/real value**.
