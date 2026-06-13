@@ -56,7 +56,7 @@ def _tier_detail(listings, cap, benchmark, threshold) -> dict:
 
 
 def build_context(snapshot, cap, onchain_address, tiers=feeds.DEFAULT_TIERS,
-                  benchmark=feeds.PRIMARY_BENCHMARK) -> dict:
+                  benchmark=feeds.PRIMARY_BENCHMARK, stack=None) -> dict:
     listings = snapshot["listings"]
     rows = []
     for name, threshold in tiers:
@@ -77,9 +77,47 @@ def build_context(snapshot, cap, onchain_address, tiers=feeds.DEFAULT_TIERS,
             "providers_total": len({_provider_of(li) for li in listings}),
             "multiple": multiple,
         },
-        "onchain": ({"address": onchain_address, "explorer_url": EXPLORER + onchain_address}
-                    if onchain_address else None),
+        "onchain": _onchain_context(onchain_address, stack),
     }
+
+
+def _onchain_context(onchain_address, stack):
+    """The on-chain block: the live feed address (back-compat) plus, when available,
+    the full economic-security stack (token + staking + median oracle)."""
+    if not onchain_address:
+        return None
+    ctx = {"address": onchain_address, "explorer_url": EXPLORER + onchain_address}
+    if stack:
+        ctx["network"] = "Base Sepolia"
+        ctx["contracts"] = stack
+    return ctx
+
+
+# Order = the story: read the rate, stake on it, secure it, aggregate it.
+_ONCHAIN_STACK = [
+    ("deployed.json", "Index oracle", "Live index feeds — any contract can read the rate"),
+    ("token-deployed.json", "BEACON token", "The asset publishers stake to back accuracy"),
+    ("staking-deployed.json", "Integrity staking", "Stake, delegate, slash, reward — economic security"),
+    ("oracle-v2-deployed.json", "Median oracle", "Multi-publisher median; auto-slashes bad data"),
+]
+
+
+def onchain_stack(onchain_dir) -> List[dict]:
+    """Assemble the deployed-contract list from the onchain/*-deployed.json records.
+    Robust to missing files so the daily rebuild never breaks on a partial deploy."""
+    out = []
+    for fname, name, role in _ONCHAIN_STACK:
+        p = Path(onchain_dir) / fname
+        if not p.exists():
+            continue
+        try:
+            addr = json.loads(p.read_text()).get("address")
+        except (ValueError, OSError):
+            continue
+        if addr:
+            out.append({"name": name, "role": role, "address": addr,
+                        "explorer_url": EXPLORER + addr})
+    return out
 
 
 def pct_change(series: Sequence[Tuple[str, float]]) -> Optional[float]:
@@ -332,11 +370,25 @@ def render_html(context, frontier_svg, distribution_svg, trend_svg):
             if distribution_svg else "")
     onchain = ""
     if context["onchain"]:
-        a = context["onchain"]["address"]
-        onchain = f"""
+        oc = context["onchain"]
+        contracts = oc.get("contracts")
+        if contracts:
+            seals = "".join(
+                f'<div class="seal rise" style="margin-top:12px">'
+                f'<span class="l">{c["name"]} &middot; {c["role"]}</span>'
+                f'<a href="{c["explorer_url"]}" target="_blank" rel="noopener">{c["address"]}</a></div>'
+                for c in contracts)
+            onchain = f"""
+  <h2 class="rise">Secured on-chain</h2>
+  <p class="rise">A dashboard tells a human what AI costs. Beacon publishes the rate <em>on-chain</em>, where any contract or agent can settle against it &mdash; and secures it economically: publishers stake <span class="mono">BEACON</span> on the accuracy of their feeds, a multi-publisher median sets the rate, and submissions that deviate are automatically slashed.</p>
+  {seals}
+  <div class="fig"><span class="l">{oc.get('network','')} &middot; testnet &middot; unaudited &mdash; economic security is live, real value is not yet at stake</span></div>"""
+        else:
+            a = oc["address"]
+            onchain = f"""
   <div class="seal rise">
     <span class="l">Published on-chain &middot; Base Sepolia &middot; readable by any contract</span>
-    <a href="{context['onchain']['explorer_url']}">{a}</a></div>"""
+    <a href="{oc['explorer_url']}">{a}</a></div>"""
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -384,12 +436,14 @@ def main() -> int:
     if not cap:
         print("No verified benchmarks; calibrate data/benchmarks.csv first")
         return 1
+    onchain_dir = analyze.DATA_DIR.parent / "onchain"
     addr = None
-    deployed = analyze.DATA_DIR.parent / "onchain" / "deployed.json"
+    deployed = onchain_dir / "deployed.json"
     if deployed.exists():
         addr = json.loads(deployed.read_text()).get("address")
+    stack = onchain_stack(onchain_dir)
 
-    context = build_context(snapshot, cap, addr)
+    context = build_context(snapshot, cap, addr, stack=stack)
 
     # time-derived per-tier fields (change + sparkline) from full history
     all_snaps = [(json.loads(p.read_text())["observed_at"], json.loads(p.read_text())["listings"]) for p in snaps]

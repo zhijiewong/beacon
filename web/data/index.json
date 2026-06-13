@@ -1,20 +1,20 @@
 {
-  "as_of": "2026-06-07",
-  "model_count": 310,
+  "as_of": "2026-06-12",
+  "model_count": 307,
   "methodology_version": "0.1",
   "benchmark": "GPQA-Diamond",
   "tiers": [
     {
       "name": "frontier",
       "threshold": 90,
-      "value_usd_per_mtok": 1.3679999999999999,
-      "spread": 11.22556788166931,
+      "value_usd_per_mtok": 1.3625,
+      "spread": 11.258278145695364,
       "n_qualifying": 6,
       "provider_count": 6,
       "cheapest_model": "moonshotai/kimi-k2.6",
       "prices": [
         0.5249999999999999,
-        1.3679999999999999,
+        1.3625,
         1.875,
         4.5,
         10.0,
@@ -35,7 +35,7 @@
         0.5249999999999999,
         0.54375,
         1.15,
-        1.3679999999999999,
+        1.3625,
         1.505,
         1.875,
         4.5,
@@ -61,7 +61,7 @@
         0.54375,
         0.8,
         1.15,
-        1.3679999999999999,
+        1.3625,
         1.505,
         1.875,
         4.5,
@@ -73,12 +73,39 @@
     }
   ],
   "key_figures": {
-    "providers_total": 54,
-    "multiple": 24.10572687224669
+    "providers_total": 53,
+    "multiple": 24.00881057268722
   },
   "onchain": {
     "address": "0xD3676E36b645883E1554489A1F9D2860ce6e4997",
-    "explorer_url": "https://sepolia.basescan.org/address/0xD3676E36b645883E1554489A1F9D2860ce6e4997"
+    "explorer_url": "https://sepolia.basescan.org/address/0xD3676E36b645883E1554489A1F9D2860ce6e4997",
+    "network": "Base Sepolia",
+    "contracts": [
+      {
+        "name": "Index oracle",
+        "role": "Live index feeds \u2014 any contract can read the rate",
+        "address": "0xD3676E36b645883E1554489A1F9D2860ce6e4997",
+        "explorer_url": "https://sepolia.basescan.org/address/0xD3676E36b645883E1554489A1F9D2860ce6e4997"
+      },
+      {
+        "name": "BEACON token",
+        "role": "The asset publishers stake to back accuracy",
+        "address": "0x7848eAD4459C8334854B015C49F10dFb02B5dC83",
+        "explorer_url": "https://sepolia.basescan.org/address/0x7848eAD4459C8334854B015C49F10dFb02B5dC83"
+      },
+      {
+        "name": "Integrity staking",
+        "role": "Stake, delegate, slash, reward \u2014 economic security",
+        "address": "0xbC37A8595dB8c73e371C2a67504915EB04AcD233",
+        "explorer_url": "https://sepolia.basescan.org/address/0xbC37A8595dB8c73e371C2a67504915EB04AcD233"
+      },
+      {
+        "name": "Median oracle",
+        "role": "Multi-publisher median; auto-slashes bad data",
+        "address": "0x0e8faC8C185cb2ffDcA46371d45f743738e34AA2",
+        "explorer_url": "https://sepolia.basescan.org/address/0x0e8faC8C185cb2ffDcA46371d45f743738e34AA2"
+      }
+    ]
   },
   "charts": {
     "scatter": [
@@ -110,7 +137,7 @@
       {
         "model": "moonshotai/kimi-k2.6",
         "capability": 91.1,
-        "price": 1.3679999999999999
+        "price": 1.3625
       },
       {
         "model": "z-ai/glm-5.1",
@@ -150,7 +177,7 @@
       {
         "model": "google/gemma-3-12b-it",
         "capability": 34.9,
-        "price": 0.0625
+        "price": 0.075
       },
       {
         "model": "deepseek/deepseek-r1",
@@ -228,7 +255,7 @@
       ],
       [
         90,
-        1.3679999999999999
+        1.3625
       ]
     ],
     "trend": {
@@ -240,6 +267,22 @@
         [
           "2026-06-07",
           1.3679999999999999
+        ],
+        [
+          "2026-06-08",
+          1.3679999999999999
+        ],
+        [
+          "2026-06-09",
+          1.3625
+        ],
+        [
+          "2026-06-10",
+          1.3625
+        ],
+        [
+          "2026-06-12",
+          1.3625
         ]
       ],
       "strong": [
@@ -250,6 +293,22 @@
         [
           "2026-06-07",
           0.5249999999999999
+        ],
+        [
+          "2026-06-08",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-09",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-10",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-12",
+          0.5249999999999999
         ]
       ],
       "gpt-4-class": [
@@ -259,6 +318,22 @@
         ],
         [
           "2026-06-07",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-08",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-09",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-10",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-12",
           0.05675000000000001
         ]
       ]

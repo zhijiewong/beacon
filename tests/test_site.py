@@ -1,6 +1,9 @@
 """Tests for beacon.site.build_context — the pure data behind the public
 dashboard. HTML/SVG rendering is visual and verified by opening the page."""
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from beacon import site
 
@@ -47,6 +50,22 @@ class BuildContext(unittest.TestCase):
     def test_onchain_optional(self):
         ctx = site.build_context(SNAPSHOT, CAP, None, tiers=TIERS)
         self.assertIsNone(ctx["onchain"])
+
+    def test_onchain_stack_in_context(self):
+        stack = [{"name": "Index oracle", "role": "feeds", "address": "0x1", "explorer_url": "u"}]
+        ctx = site.build_context(SNAPSHOT, CAP, "0xABC", tiers=TIERS, stack=stack)
+        self.assertEqual(ctx["onchain"]["contracts"], stack)
+        self.assertEqual(ctx["onchain"]["network"], "Base Sepolia")
+
+    def test_onchain_stack_reads_deployed_files_and_skips_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "token-deployed.json").write_text(json.dumps({"address": "0xTOKEN"}))
+            (Path(d) / "staking-deployed.json").write_text(json.dumps({"address": "0xSTAKE"}))
+            # deployed.json and oracle-v2-deployed.json absent -> skipped, no error
+            stack = site.onchain_stack(d)
+        addrs = [c["address"] for c in stack]
+        self.assertEqual(addrs, ["0xTOKEN", "0xSTAKE"])  # order preserved, missing skipped
+        self.assertTrue(all(c["explorer_url"].endswith(c["address"]) for c in stack))
 
     def test_tier_detail_cheapest_model_providers_prices(self):
         ctx = site.build_context(SNAPSHOT, CAP, "0xABC", tiers=TIERS)

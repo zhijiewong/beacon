@@ -59,12 +59,41 @@ export default function Page() {
         Beacon is a <em>capability-normalized</em> index. Rather than averaging sticker prices — which only fall and hide what you actually get — it tracks the lowest $/million-tokens to reach a fixed capability tier (scored on {ctx.benchmark}) across every major model. The construction is rules-based, reproducible, and transparent, the way credible commodity and rate benchmarks are built.
       </p>
 
-      {ctx.onchain && (
+      {ctx.onchain?.contracts?.length ? (
+        <>
+          <h2 className="font-serif text-[clamp(26px,3.4vw,34px)] mt-16 mb-3 rise">Secured on-chain</h2>
+          <p className="max-w-[62ch] text-[#33302a] mb-6 rise">
+            A dashboard tells a human what AI costs. Beacon publishes the rate <em>on-chain</em>, where any contract or agent can settle against it — and secures it economically: publishers stake {" "}
+            <span className="font-mono text-[.92em]">BEACON</span> on the accuracy of their feeds, a multi-publisher median sets the rate, and submissions that deviate from it are automatically slashed. That last part — money at risk for bad data — is what a free price tracker can&apos;t offer.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3 rise" style={{ animationDelay: ".06s" }}>
+            {ctx.onchain.contracts.map((c) => (
+              <a
+                key={c.address}
+                href={c.explorer_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block p-4 bg-paper2 border border-hair hover:border-ink transition-colors"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-serif text-[19px] leading-tight">{c.name}</span>
+                  <span className="font-mono text-[10px] tracking-[.12em] uppercase text-soft group-hover:text-sig">View ↗</span>
+                </div>
+                <p className="text-sm text-[#4a4536] mt-1 mb-2">{c.role}</p>
+                <code className="font-mono text-xs text-soft break-all group-hover:text-ink">{c.address}</code>
+              </a>
+            ))}
+          </div>
+          <div className="font-mono text-xs tracking-[.12em] uppercase text-soft mt-3 rise">
+            {ctx.onchain.network} · testnet · unaudited — economic security is live, real value is not yet at stake
+          </div>
+        </>
+      ) : ctx.onchain ? (
         <div className="mt-11 px-6 py-5 border-[1.5px] border-ink flex gap-[18px] items-center flex-wrap justify-between bg-paper2 rise">
           <span className="font-mono text-xs tracking-[.14em] uppercase text-soft">Published on-chain · Base Sepolia · readable by any contract</span>
           <a href={ctx.onchain.explorer_url} className="font-mono text-sm text-ink no-underline border-b-2 border-sig break-all hover:bg-sig hover:text-paper">{ctx.onchain.address}</a>
         </div>
-      )}
+      ) : null}
 
       <footer className="mt-16 border-t border-hair pt-4 font-mono text-xs tracking-[.08em] uppercase text-soft flex justify-between gap-4 flex-wrap">
         <span>Beacon · Neutral reference rate for AI inference</span>

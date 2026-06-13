@@ -24,7 +24,12 @@ export interface Context {
   benchmark: string;
   tiers: Tier[];
   key_figures: { providers_total: number; multiple: number | null };
-  onchain: { address: string; explorer_url: string } | null;
+  onchain: {
+    address: string;
+    explorer_url: string;
+    network?: string;
+    contracts?: { name: string; role: string; address: string; explorer_url: string }[];
+  } | null;
   charts: Charts;
 }
 
