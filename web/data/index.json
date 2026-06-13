@@ -102,8 +102,8 @@
       {
         "name": "Median oracle",
         "role": "Stake-weighted median; auto-slashes bad data",
-        "address": "0xD3114C3fE6C7D1840ca984F4B3E4705Fe3882aC6",
-        "explorer_url": "https://sepolia.basescan.org/address/0xD3114C3fE6C7D1840ca984F4B3E4705Fe3882aC6"
+        "address": "0x804233701986925ddE41aDDC349F3179d0521A2f",
+        "explorer_url": "https://sepolia.basescan.org/address/0x804233701986925ddE41aDDC349F3179d0521A2f"
       }
     ]
   },

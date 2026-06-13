@@ -186,7 +186,7 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
 | §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
 | §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
 | §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xbC37A8595dB8c73e371C2a67504915EB04AcD233` |
-| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 12 tests | `0xD3114C3fE6C7D1840ca984F4B3E4705Fe3882aC6` |
+| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 13 tests | `0x804233701986925ddE41aDDC349F3179d0521A2f` |
 
 (38 tests total green. An earlier `BeaconStaking` at `0xe474…0Ed4` predated the `slasher`
 role and was superseded; oracle-v2 was redeployed at the address above when it gained
@@ -215,7 +215,10 @@ stake-weighting + governable thresholds. v1 oracle stays live for the daily coll
   and **auto-slashes** any publisher deviating > `maxDeviationBps` (default 10%) from the
   median by `deviationSlashBps` (default 5%), then clears the round. Both thresholds are
   governable (owner-tunable), with the slash hard-capped at `DEVIATION_SLASH_BPS_CAP`
-  (= staking's `MAX_SLASH_BPS`) so `staking.slash` can never revert. `BeaconStaking`
+  (= staking's `MAX_SLASH_BPS`) so `staking.slash` can never revert. An optional
+  `maxStaleness` window (default 0 = off) excludes un-refreshed submissions from both the
+  median and slashing — a publisher isn't judged on data it didn't restate, and stale
+  data can't sway the rate; the quorum counts only fresh submissions. `BeaconStaking`
   gained a settable `slasher` role (the oracle) so this can fire; the owner can still
   slash manually.
 
