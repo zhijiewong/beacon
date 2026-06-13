@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title BeaconStaking — Oracle Integrity Staking (Pyth-style) for the Beacon rate
 /// @notice Publishers self-stake BEACON to back the accuracy of the feeds they post;
@@ -17,7 +18,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 ///         asset value of a position; `poolStake` is the pool's total assets.
 ///         TESTNET ONLY — unaudited; needs a professional audit before any real value.
 ///         Staking pulls BEACON via transferFrom (stakers pre-approve this contract).
-contract BeaconStaking is ReentrancyGuard, Ownable2Step {
+contract BeaconStaking is ReentrancyGuard, Ownable2Step, Pausable {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable beacon;
@@ -131,7 +132,7 @@ contract BeaconStaking is ReentrancyGuard, Ownable2Step {
     // --- staking -----------------------------------------------------------
 
     /// @notice Publisher self-stakes BEACON into its own pool.
-    function selfStake(uint256 amount) external nonReentrant {
+    function selfStake(uint256 amount) external nonReentrant whenNotPaused {
         _stake(msg.sender, msg.sender, amount);
         emit SelfStaked(msg.sender, amount);
     }
@@ -139,7 +140,7 @@ contract BeaconStaking is ReentrancyGuard, Ownable2Step {
     /// @notice Delegator stakes BEACON to back an existing publisher's pool.
     /// @dev A publisher is anyone with a non-zero self-stake; eligibility to *post*
     ///      additionally requires MIN_PUBLISHER_STAKE (see isEligiblePublisher).
-    function delegate(address publisher, uint256 amount) external nonReentrant {
+    function delegate(address publisher, uint256 amount) external nonReentrant whenNotPaused {
         require(stakeOf(publisher, publisher) > 0, "not a publisher");
         _stake(publisher, msg.sender, amount);
         emit Delegated(publisher, msg.sender, amount);
@@ -258,13 +259,36 @@ contract BeaconStaking is ReentrancyGuard, Ownable2Step {
         emit SlasherSet(slasher_);
     }
 
+    // --- emergency controls ------------------------------------------------
+
+    /// @notice Pause new stakes/delegations and reward distribution. Exits (`requestUnstake`,
+    ///         `withdraw`, `claim`) and `slash` stay available — pausing never traps a
+    ///         staker and never disables the security response. Owner only.
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Resume staking. Owner only.
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /// @notice Recover tokens accidentally sent to this contract. The staked asset
+    ///         (BEACON) and the reward token are protected — the owner can never touch
+    ///         stakers' principal or owed rewards. Owner only.
+    function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        require(token != beacon && token != rewardToken, "protected");
+        require(to != address(0), "zero to");
+        token.safeTransfer(to, amount);
+    }
+
     // --- rewards -----------------------------------------------------------
 
     /// @notice Distribute reward-token (e.g. USDC) to a publisher's pool. The publisher
     ///         keeps its commission off the top; the remainder accrues pro-rata to every
     ///         staker by shares. Governance-funded (owner) from protocol fees; capped per
     ///         epoch to bound APY and deter reward-gaming.
-    function distributeRewards(address publisher, uint256 amount) external onlyOwner {
+    function distributeRewards(address publisher, uint256 amount) external onlyOwner whenNotPaused {
         require(address(rewardToken) != address(0), "reward token unset");
         require(amount > 0, "zero amount");
         uint256 supply = totalShares[publisher];

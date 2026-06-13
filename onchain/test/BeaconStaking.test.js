@@ -76,4 +76,48 @@ describe("BeaconStaking", function () {
     await staking.connect(other).acceptOwnership();
     expect(await staking.owner()).to.equal(other.address);
   });
+
+  it("pause stops new staking but never traps a withdrawal; unpause restores it", async () => {
+    const { staking, deployer, pub } = await setup();
+    await staking.connect(pub).selfStake(MIN);
+    await staking.connect(pub).requestUnstake(pub.address, 400n * E18); // pool -> 600
+    await staking.connect(deployer).pause();
+
+    await expect(staking.connect(pub).selfStake(MIN)).to.be.revertedWithCustomError(staking, "EnforcedPause");
+    // exiting is always allowed: the cooldown'd withdrawal still goes through while paused
+    await increaseTime(7 * 24 * 3600 + 1);
+    await staking.connect(pub).withdraw(pub.address);
+
+    await staking.connect(deployer).unpause();
+    await staking.connect(pub).selfStake(MIN); // staking works again
+    expect(await staking.poolStake(pub.address)).to.equal(600n * E18 + MIN);
+  });
+
+  it("only the owner can pause", async () => {
+    const { staking, pub } = await setup();
+    await expect(staking.connect(pub).pause()).to.be.revertedWithCustomError(staking, "OwnableUnauthorizedAccount");
+  });
+
+  it("owner can rescue a stray ERC20, but never the staked BEACON or the reward token", async () => {
+    const { token, staking, deployer, other } = await setup();
+    const stray = await (await ethers.getContractFactory("MockERC20")).deploy("Stray", "STRY", 18);
+    await stray.mint(await staking.getAddress(), 5n * E18); // fat-fingered straight to the contract
+    await staking.connect(deployer).rescueTokens(await stray.getAddress(), other.address, 5n * E18);
+    expect(await stray.balanceOf(other.address)).to.equal(5n * E18);
+
+    // the staked asset is off-limits
+    await expect(staking.connect(deployer).rescueTokens(await token.getAddress(), other.address, 1n))
+      .to.be.revertedWith("protected");
+    // and so is the reward token once set
+    const usdc = await (await ethers.getContractFactory("MockERC20")).deploy("USD Coin", "USDC", 6);
+    await staking.connect(deployer).setRewardToken(await usdc.getAddress());
+    await expect(staking.connect(deployer).rescueTokens(await usdc.getAddress(), other.address, 1n))
+      .to.be.revertedWith("protected");
+  });
+
+  it("only the owner can rescue", async () => {
+    const { token, staking, pub, other } = await setup();
+    await expect(staking.connect(pub).rescueTokens(await token.getAddress(), other.address, 1n))
+      .to.be.revertedWithCustomError(staking, "OwnableUnauthorizedAccount");
+  });
 });
