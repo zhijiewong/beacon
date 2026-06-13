@@ -27,9 +27,33 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     uint256 public constant UNBOND_PERIOD = 7 days;
     /// Maximum fraction of a pool that a single slash can remove (5%, in basis points).
     uint256 public constant MAX_SLASH_BPS = 500;
+    /// Maximum publisher commission on rewards (20%, in basis points).
+    uint256 public constant MAX_FEE_BPS = 2000;
+    /// Window over which the per-pool reward cap is measured.
+    uint256 public constant REWARD_EPOCH = 7 days;
+    /// Fixed-point precision for the reward-per-share accumulator.
+    uint256 private constant ACC_PRECISION = 1e30;
 
     /// Where slashed tokens are sent (governance / insurance fund). Defaults to owner.
     address public slashTreasury;
+
+    /// Stablecoin rewards are paid in this token (e.g. USDC). Set by governance.
+    IERC20 public rewardToken;
+    /// Max reward (in reward-token units) distributable to one pool per epoch. 0 = no cap.
+    uint256 public maxRewardPerEpoch;
+
+    /// publisher => commission (bps) the publisher keeps off the top of its pool's rewards.
+    mapping(address => uint256) public publisherFeeBps;
+    /// publisher => accumulated reward-token per share, scaled by ACC_PRECISION.
+    mapping(address => uint256) public accRewardPerShare;
+    /// publisher => staker => reward-per-share already accounted for (MasterChef debt).
+    mapping(address => mapping(address => uint256)) public rewardDebt;
+    /// publisher => staker => settled-but-unclaimed rewards.
+    mapping(address => mapping(address => uint256)) public claimable;
+    /// publisher => start of the current reward epoch.
+    mapping(address => uint256) public rewardEpochStart;
+    /// publisher => rewards distributed to this pool in the current epoch.
+    mapping(address => uint256) public rewardedThisEpoch;
 
     /// publisher => total assets backing that publisher (self + delegated, net of slashing).
     mapping(address => uint256) public poolStake;
@@ -51,6 +75,11 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     event Withdrawn(address indexed publisher, address indexed staker, uint256 amount);
     event Slashed(address indexed publisher, uint256 amount, uint256 bps);
     event SlashTreasurySet(address indexed treasury);
+    event RewardTokenSet(address indexed token);
+    event MaxRewardPerEpochSet(uint256 amount);
+    event PublisherFeeSet(address indexed publisher, uint256 bps);
+    event RewardsDistributed(address indexed publisher, uint256 amount, uint256 fee);
+    event RewardsClaimed(address indexed publisher, address indexed staker, uint256 amount);
 
     constructor(IERC20 beacon_) Ownable(msg.sender) {
         require(address(beacon_) != address(0), "zero token");
@@ -70,6 +99,20 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     /// @notice Whether a publisher meets the minimum self-stake to post feeds.
     function isEligiblePublisher(address publisher) external view returns (bool) {
         return stakeOf(publisher, publisher) >= MIN_PUBLISHER_STAKE;
+    }
+
+    /// @notice Reward-token amount a staker can currently claim from a pool.
+    function pendingRewards(address publisher, address staker) public view returns (uint256) {
+        uint256 accrued = (sharesOf[publisher][staker] * accRewardPerShare[publisher]) / ACC_PRECISION;
+        return claimable[publisher][staker] + accrued - rewardDebt[publisher][staker];
+    }
+
+    /// @dev Move a staker's freshly-accrued rewards into `claimable` and reset their debt.
+    ///      Must be called before any change to the staker's share balance.
+    function _settle(address publisher, address staker) internal {
+        uint256 accrued = (sharesOf[publisher][staker] * accRewardPerShare[publisher]) / ACC_PRECISION;
+        claimable[publisher][staker] += accrued - rewardDebt[publisher][staker];
+        rewardDebt[publisher][staker] = accrued;
     }
 
     // --- staking -----------------------------------------------------------
@@ -92,6 +135,7 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     /// @dev Mints pool shares to `staker` for `amount` assets at the current rate.
     function _stake(address publisher, address staker, uint256 amount) internal {
         require(amount > 0, "zero amount");
+        _settle(publisher, staker); // bank rewards earned on the existing balance first
         beacon.safeTransferFrom(msg.sender, address(this), amount);
         uint256 supply = totalShares[publisher];
         uint256 assets = poolStake[publisher];
@@ -100,6 +144,7 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
         sharesOf[publisher][staker] += newShares;
         totalShares[publisher] = supply + newShares;
         poolStake[publisher] = assets + amount;
+        rewardDebt[publisher][staker] = (sharesOf[publisher][staker] * accRewardPerShare[publisher]) / ACC_PRECISION;
     }
 
     // --- unbonding ---------------------------------------------------------
@@ -110,11 +155,13 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
     function requestUnstake(address publisher, uint256 amount) external {
         require(amount > 0, "zero amount");
         require(stakeOf(publisher, msg.sender) >= amount, "insufficient stake");
+        _settle(publisher, msg.sender); // bank rewards before shares change
         // Burn the shares corresponding to `amount` assets at the current rate.
         uint256 burnShares = (amount * totalShares[publisher]) / poolStake[publisher];
         sharesOf[publisher][msg.sender] -= burnShares;
         totalShares[publisher] -= burnShares;
         poolStake[publisher] -= amount;
+        rewardDebt[publisher][msg.sender] = (sharesOf[publisher][msg.sender] * accRewardPerShare[publisher]) / ACC_PRECISION;
 
         Unbond storage u = unbonding[publisher][msg.sender];
         u.amount += amount;
@@ -155,5 +202,65 @@ contract BeaconStaking is ReentrancyGuard, Ownable {
         require(treasury != address(0), "zero treasury");
         slashTreasury = treasury;
         emit SlashTreasurySet(treasury);
+    }
+
+    // --- rewards -----------------------------------------------------------
+
+    /// @notice Distribute reward-token (e.g. USDC) to a publisher's pool. The publisher
+    ///         keeps its commission off the top; the remainder accrues pro-rata to every
+    ///         staker by shares. Governance-funded (owner) from protocol fees; capped per
+    ///         epoch to bound APY and deter reward-gaming.
+    function distributeRewards(address publisher, uint256 amount) external onlyOwner {
+        require(address(rewardToken) != address(0), "reward token unset");
+        require(amount > 0, "zero amount");
+        uint256 supply = totalShares[publisher];
+        require(supply > 0, "empty pool");
+
+        if (maxRewardPerEpoch > 0) {
+            if (block.timestamp >= rewardEpochStart[publisher] + REWARD_EPOCH) {
+                rewardEpochStart[publisher] = block.timestamp;
+                rewardedThisEpoch[publisher] = 0;
+            }
+            require(rewardedThisEpoch[publisher] + amount <= maxRewardPerEpoch, "epoch cap");
+            rewardedThisEpoch[publisher] += amount;
+        }
+
+        rewardToken.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 fee = (amount * publisherFeeBps[publisher]) / 10_000;
+        if (fee > 0) claimable[publisher][publisher] += fee;
+        uint256 distributable = amount - fee;
+        accRewardPerShare[publisher] += (distributable * ACC_PRECISION) / supply;
+        emit RewardsDistributed(publisher, amount, fee);
+    }
+
+    /// @notice Claim accrued reward-token from a publisher's pool.
+    function claim(address publisher) external nonReentrant returns (uint256 amount) {
+        _settle(publisher, msg.sender);
+        amount = claimable[publisher][msg.sender];
+        if (amount > 0) {
+            claimable[publisher][msg.sender] = 0;
+            rewardToken.safeTransfer(msg.sender, amount);
+        }
+        emit RewardsClaimed(publisher, msg.sender, amount);
+    }
+
+    /// @notice Publisher sets its commission (bps) on its pool's rewards (capped).
+    function setPublisherFee(uint256 bps) external {
+        require(bps <= MAX_FEE_BPS, "fee too high");
+        publisherFeeBps[msg.sender] = bps;
+        emit PublisherFeeSet(msg.sender, bps);
+    }
+
+    /// @notice Set the reward token (e.g. USDC), owner only.
+    function setRewardToken(address token) external onlyOwner {
+        require(token != address(0), "zero token");
+        rewardToken = IERC20(token);
+        emit RewardTokenSet(token);
+    }
+
+    /// @notice Cap reward-token distributable to one pool per epoch (0 = no cap), owner only.
+    function setMaxRewardPerEpoch(uint256 amount) external onlyOwner {
+        maxRewardPerEpoch = amount;
+        emit MaxRewardPerEpochSet(amount);
     }
 }
