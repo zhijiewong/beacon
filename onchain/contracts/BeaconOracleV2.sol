@@ -23,11 +23,14 @@ interface IBeaconStaking {
 contract BeaconOracleV2 is Ownable {
     IBeaconStaking public immutable staking;
 
-    /// Max deviation from the round median before a submission is slashed (10%, bps).
-    uint256 public constant MAX_DEVIATION_BPS = 1000;
-    /// Slash applied to a deviating publisher's pool (5%, bps — within staking's cap).
-    uint256 public constant DEVIATION_SLASH_BPS = 500;
+    /// Hard cap on the configurable slash — equals staking's MAX_SLASH_BPS so that
+    /// `staking.slash` can never revert from too-large a value. Not governable.
+    uint256 public constant DEVIATION_SLASH_BPS_CAP = 500;
 
+    /// Max deviation from the round median before a submission is slashed (default 10%).
+    uint256 public maxDeviationBps = 1000;
+    /// Slash applied to a deviating publisher's pool (default 5%; ≤ cap).
+    uint256 public deviationSlashBps = 500;
     /// Minimum submissions required to finalize a round (governance-settable).
     uint256 public minPublishers = 1;
 
@@ -45,6 +48,8 @@ contract BeaconOracleV2 is Ownable {
     event RoundFinalized(bytes32 indexed id, uint256 median, uint256 publishers);
     event PublisherSlashed(bytes32 indexed id, address indexed publisher, uint256 value, uint256 median);
     event MinPublishersSet(uint256 minPublishers);
+    event MaxDeviationBpsSet(uint256 bps);
+    event DeviationSlashBpsSet(uint256 bps);
 
     constructor(IBeaconStaking staking_) Ownable(msg.sender) {
         require(address(staking_) != address(0), "zero staking");
@@ -103,8 +108,8 @@ contract BeaconOracleV2 is Ownable {
             address p = pubs[i];
             uint256 v = submission[id][p];
             uint256 diff = v > m ? v - m : m - v;
-            if (m > 0 && (diff * 10_000) / m > MAX_DEVIATION_BPS) {
-                staking.slash(p, DEVIATION_SLASH_BPS);
+            if (m > 0 && (diff * 10_000) / m > maxDeviationBps) {
+                staking.slash(p, deviationSlashBps);
                 emit PublisherSlashed(id, p, v, m);
             }
         }
@@ -126,6 +131,21 @@ contract BeaconOracleV2 is Ownable {
         require(n > 0, "zero quorum");
         minPublishers = n;
         emit MinPublishersSet(n);
+    }
+
+    /// @notice Tune the deviation tolerance (bps) before a submission is slashed.
+    function setMaxDeviationBps(uint256 bps) external onlyOwner {
+        require(bps > 0, "zero deviation");
+        maxDeviationBps = bps;
+        emit MaxDeviationBpsSet(bps);
+    }
+
+    /// @notice Tune the slash applied to deviators (bps), capped so staking never reverts.
+    function setDeviationSlashBps(uint256 bps) external onlyOwner {
+        require(bps > 0, "zero slash");
+        require(bps <= DEVIATION_SLASH_BPS_CAP, "slash too high");
+        deviationSlashBps = bps;
+        emit DeviationSlashBpsSet(bps);
     }
 
     // --- internal ---------------------------------------------------------

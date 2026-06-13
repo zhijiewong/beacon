@@ -97,6 +97,28 @@ describe("BeaconOracleV2 — median aggregation + deviation slashing", function 
     expect(await oracle.median(ID)).to.equal(102); // equal weights -> middle value
   });
 
+  it("lets governance tighten the deviation threshold without a redeploy", async () => {
+    const { staking, oracle, deployer, p1, p2, p3 } = await setup();
+    await oracle.connect(deployer).setMaxDeviationBps(100); // 1% tolerance
+    await oracle.connect(p1).postFeed(ID, 100);
+    await oracle.connect(p2).postFeed(ID, 100);
+    await oracle.connect(p3).postFeed(ID, 105); // 5% off median 100 -> slashed at 1% tol
+    await oracle.finalizeRound(ID);
+    expect(await staking.poolStake(p3.address)).to.equal(950n * E18);
+    expect(await staking.poolStake(p1.address)).to.equal(MIN);
+  });
+
+  it("caps the configurable slash so staking.slash can never revert", async () => {
+    const { oracle, deployer } = await setup();
+    await expect(oracle.connect(deployer).setDeviationSlashBps(501)).to.be.revertedWith("slash too high");
+  });
+
+  it("only the owner can change oracle parameters", async () => {
+    const { oracle, p1 } = await setup();
+    await expect(oracle.connect(p1).setMaxDeviationBps(100))
+      .to.be.revertedWithCustomError(oracle, "OwnableUnauthorizedAccount");
+  });
+
   it("clears the round so the next round starts fresh", async () => {
     const { oracle, p1, p2, p3 } = await setup();
     await oracle.connect(p1).postFeed(ID, 100);
