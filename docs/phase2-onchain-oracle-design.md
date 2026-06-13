@@ -186,10 +186,11 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
 | §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
 | §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
 | §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xbC37A8595dB8c73e371C2a67504915EB04AcD233` |
-| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher median + auto-slash) | live, 7 tests | `0x0e8faC8C185cb2ffDcA46371d45f743738e34AA2` |
+| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 12 tests | `0xD3114C3fE6C7D1840ca984F4B3E4705Fe3882aC6` |
 
-(33 tests total green. An earlier `BeaconStaking` at `0xe474…0Ed4` predated the `slasher`
-role and was superseded by the address above; v1 oracle stays live for the daily collector.)
+(38 tests total green. An earlier `BeaconStaking` at `0xe474…0Ed4` predated the `slasher`
+role and was superseded; oracle-v2 was redeployed at the address above when it gained
+stake-weighting + governable thresholds. v1 oracle stays live for the daily collector.)
 
 **`BeaconStaking` (Oracle Integrity Staking) implements §7:**
 - **Self-stake / delegation.** Publishers self-stake BEACON; delegators back a publisher's
@@ -207,11 +208,16 @@ role and was superseded by the address above; v1 oracle stays live for the daily
 **`BeaconOracleV2` (multi-publisher median + auto-slash) evolves §4:**
 - Eligible publishers (self-stake ≥ `MIN_PUBLISHER_STAKE`) submit a value per feed id
   during a round; `postFeed` rejects non-eligible accounts.
-- `finalizeRound` (permissionless, quorum-gated via `minPublishers`) aggregates by
-  **median**, publishes it (`latestValue`), and **auto-slashes** any publisher whose
-  submission deviates > `MAX_DEVIATION_BPS` (10%) from the median by `DEVIATION_SLASH_BPS`
-  (5%), then clears the round. `BeaconStaking` gained a settable `slasher` role (the
-  oracle) so this can fire; the owner can still slash manually.
+- `finalizeRound` (permissionless, quorum-gated via `minPublishers`) aggregates by a
+  **stake-weighted median** — each submission is weighted by its publisher's pool stake,
+  so the rate resists sybil/low-stake manipulation (influence tracks skin in the game;
+  with equal stakes it reduces to a plain median). It publishes the result (`latestValue`)
+  and **auto-slashes** any publisher deviating > `maxDeviationBps` (default 10%) from the
+  median by `deviationSlashBps` (default 5%), then clears the round. Both thresholds are
+  governable (owner-tunable), with the slash hard-capped at `DEVIATION_SLASH_BPS_CAP`
+  (= staking's `MAX_SLASH_BPS`) so `staking.slash` can never revert. `BeaconStaking`
+  gained a settable `slasher` role (the oracle) so this can fire; the owner can still
+  slash manually.
 
 **Verified live on Base Sepolia** (`scripts/demo-oracle-v2.js`): 3 publishers submit
 100 / 101 / 200 → median **101** published; the 200 outlier auto-slashed 1000 → 950 BEACON

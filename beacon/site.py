@@ -98,7 +98,7 @@ _ONCHAIN_STACK = [
     ("deployed.json", "Index oracle", "Live index feeds — any contract can read the rate"),
     ("token-deployed.json", "BEACON token", "The asset publishers stake to back accuracy"),
     ("staking-deployed.json", "Integrity staking", "Stake, delegate, slash, reward — economic security"),
-    ("oracle-v2-deployed.json", "Median oracle", "Multi-publisher median; auto-slashes bad data"),
+    ("oracle-v2-deployed.json", "Median oracle", "Stake-weighted median; auto-slashes bad data"),
 ]
 
 
