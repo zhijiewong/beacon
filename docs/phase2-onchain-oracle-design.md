@@ -174,3 +174,32 @@ This document is the agreed Phase-2 picture. The **only** thing to build first, 
 when you choose to, is §4 (the testnet oracle + publisher). Token/staking/distribution
 (§6–8) are documented but explicitly deferred until the oracle works and Phase 1 has
 real usage. Each sub-project will get its own implementation plan when its time comes.
+
+---
+
+## 13. Build log (testnet — what's actually shipped)
+All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
+**Unaudited; testnet-only; token launch/distribution still gated on real traction.**
+
+| Sub-project | Contract | Status | Address |
+|-------------|----------|--------|---------|
+| §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
+| §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
+| §7 OIS staking | `BeaconStaking.sol` | live, 16 tests | `0xe4746a7100188D80212AF6c5eFDDd3629d100Ed4` |
+
+**`BeaconStaking` (Oracle Integrity Staking) implements §7:**
+- **Self-stake / delegation.** Publishers self-stake BEACON; delegators back a publisher's
+  pool. Each pool is a shares/assets vault (ERC-4626-style) so accounting is O(1).
+- **Unbonding.** `requestUnstake` removes assets from the pool immediately and starts a
+  7-day cooldown (`UNBOND_PERIOD`); `withdraw` returns tokens after it elapses.
+- **Eligibility.** `isEligiblePublisher` = self-stake ≥ `MIN_PUBLISHER_STAKE` (1000 BEACON).
+- **Slashing.** Owner-gated `slash(publisher, bps)` capped at `MAX_SLASH_BPS` (5%); lowers
+  pool assets → every staker cut pro-rata in O(1); slashed tokens routed to `slashTreasury`.
+- **Rewards.** `distributeRewards` pays a stablecoin (`rewardToken`, e.g. USDC) pro-rata to
+  shares via a MasterChef accumulator; publisher commission off the top (`MAX_FEE_BPS` 20%);
+  per-pool per-epoch cap (`maxRewardPerEpoch`, `REWARD_EPOCH` 7d) bounds APY/gaming; `claim`
+  pays out. Accrued rewards are independent of later slashing.
+
+**Still open (Stage 3, design §4 evolution):** a **multi-publisher median-aggregation oracle
+(v2)** and a **deviation-triggered automatic slash** path (today `slash` is governance-gated).
+Plus the §11 open questions and a professional audit before any mainnet/real value.
