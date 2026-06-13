@@ -75,6 +75,28 @@ describe("BeaconOracleV2 — median aggregation + deviation slashing", function 
     await expect(oracle.finalizeRound(ID)).to.be.revertedWith("quorum");
   });
 
+  it("weights the median by stake — a heavily-staked publisher pulls the rate", async () => {
+    const { token, staking, oracle, p1, p2, p3 } = await setup();
+    // p1 raises its stake to 3000 (3x the others at 1000 each).
+    await token.connect(p1).approve(await staking.getAddress(), 2_000n * E18);
+    await staking.connect(p1).selfStake(2_000n * E18); // p1 pool: 1000 -> 3000
+
+    await oracle.connect(p1).postFeed(ID, 100); // weight 3000
+    await oracle.connect(p2).postFeed(ID, 110); // weight 1000
+    await oracle.connect(p3).postFeed(ID, 112); // weight 1000
+
+    // unweighted median would be 110; stake-weighted (3000 at 100 > half of 5000) is 100
+    expect(await oracle.median(ID)).to.equal(100);
+  });
+
+  it("falls back to a plain median when stakes are equal", async () => {
+    const { oracle, p1, p2, p3 } = await setup();
+    await oracle.connect(p1).postFeed(ID, 100);
+    await oracle.connect(p2).postFeed(ID, 102);
+    await oracle.connect(p3).postFeed(ID, 104);
+    expect(await oracle.median(ID)).to.equal(102); // equal weights -> middle value
+  });
+
   it("clears the round so the next round starts fresh", async () => {
     const { oracle, p1, p2, p3 } = await setup();
     await oracle.connect(p1).postFeed(ID, 100);
