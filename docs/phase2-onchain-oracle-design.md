@@ -185,10 +185,10 @@ All on Base Sepolia (chainId 84532), Hardhat + Solidity 0.8.28 (cancun), OZ 5.6.
 |-------------|----------|--------|---------|
 | §4 Oracle (v1) | `BeaconOracle.sol` (push, single-publisher, 8-dp) | live, 7 tests | `0xD3676E36b645883E1554489A1F9D2860ce6e4997` |
 | §6 Token | `BeaconToken.sol` (ERC20+Permit, fixed 1B → treasury) | live, 4 tests | `0x7848eAD4459C8334854B015C49F10dFb02B5dC83` |
-| §7 OIS staking | `BeaconStaking.sol` | live, 18 tests | `0xfB62EaBB3B6884B8285b285333306943bB89C1FE` |
-| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 13 tests | `0x4Ac47694feEc64F15B69dfAac37c96Ac3ae9327D` |
+| §7 OIS staking | `BeaconStaking.sol` | live, 22 tests | `0xcB89521036C457C050AdE2e3501449D8A6878182` |
+| §4 Oracle (v2) | `BeaconOracleV2.sol` (multi-publisher **stake-weighted** median + auto-slash) | live, 13 tests | `0x323e13051725e0b06b598B2Ceaff414Ac7A84eEe` |
 
-(43 tests total green. Addresses above are the current release; staking + oracle are
+(47 tests total green. Addresses above are the current release; staking + oracle are
 redeployed together per release — earlier addresses were superseded as the contracts
 gained the `slasher` role, stake-weighting/governable thresholds/staleness, unbonding-
 slash, and two-step ownership. The deployed-record JSONs are the source of truth and the
@@ -210,6 +210,10 @@ dashboard reads them. v1 oracle stays live for the daily collector.)
   pays out. Accrued rewards are independent of later slashing.
 - **Governance.** Two-step ownership (`Ownable2Step`) so admin can't be handed to a wrong
   address by mistake.
+- **Emergency controls.** `pause`/`unpause` halt new stakes/delegations and reward
+  distribution while leaving exits (`requestUnstake`/`withdraw`/`claim`) and `slash` open —
+  pausing never traps a staker or disables the security response. `rescueTokens` recovers
+  stray ERC20s but hard-protects the staked BEACON and the reward token.
 
 **`BeaconOracleV2` (multi-publisher median + auto-slash) evolves §4:**
 - Eligible publishers (self-stake ≥ `MIN_PUBLISHER_STAKE`) submit a value per feed id
