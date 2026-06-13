@@ -119,6 +119,31 @@ describe("BeaconOracleV2 — median aggregation + deviation slashing", function 
       .to.be.revertedWithCustomError(oracle, "OwnableUnauthorizedAccount");
   });
 
+  it("excludes stale submissions from the median and never slashes them", async () => {
+    const { staking, oracle, deployer, p1, p2, p3 } = await setup();
+    await oracle.connect(deployer).setMaxStaleness(3600); // 1 hour
+    await oracle.connect(p3).postFeed(ID, 1_000_000); // wild outlier, posted first
+    await ethers.provider.send("evm_increaseTime", [7200]); // p3 goes stale
+    await ethers.provider.send("evm_mine", []);
+    await oracle.connect(p1).postFeed(ID, 100); // fresh
+    await oracle.connect(p2).postFeed(ID, 100); // fresh
+
+    await oracle.finalizeRound(ID);
+    const [value] = await oracle.latestValue(ID);
+    expect(value).to.equal(100); // p3's stale outlier ignored
+    expect(await staking.poolStake(p3.address)).to.equal(MIN); // stale -> not slashed
+  });
+
+  it("reverts finalize when every submission is stale (no fresh quorum)", async () => {
+    const { oracle, deployer, p1, p2 } = await setup();
+    await oracle.connect(deployer).setMaxStaleness(3600);
+    await oracle.connect(p1).postFeed(ID, 100);
+    await oracle.connect(p2).postFeed(ID, 102);
+    await ethers.provider.send("evm_increaseTime", [7200]); // both stale
+    await ethers.provider.send("evm_mine", []);
+    await expect(oracle.finalizeRound(ID)).to.be.revertedWith("quorum");
+  });
+
   it("clears the round so the next round starts fresh", async () => {
     const { oracle, p1, p2, p3 } = await setup();
     await oracle.connect(p1).postFeed(ID, 100);

@@ -18,6 +18,8 @@ interface IBeaconStaking {
 ///         manipulation), publishes the result, and auto-slashes any publisher whose
 ///         submission deviated beyond MAX_DEVIATION_BPS from that median — closing the
 ///         loop between "stake on accuracy" and "inaccuracy costs you". Replaces v1.
+///         An optional staleness window excludes un-refreshed submissions from both the
+///         median and slashing, so a publisher isn't judged on data it didn't restate.
 /// @dev    TESTNET ONLY — unaudited. Round model: submissions accumulate until anyone
 ///         (subject to a quorum) finalizes; finalizing clears the round.
 contract BeaconOracleV2 is Ownable {
@@ -33,6 +35,9 @@ contract BeaconOracleV2 is Ownable {
     uint256 public deviationSlashBps = 500;
     /// Minimum submissions required to finalize a round (governance-settable).
     uint256 public minPublishers = 1;
+    /// Submissions older than this (seconds) are excluded from aggregation and not
+    /// slashed. 0 = disabled (no staleness filtering). Governance-settable.
+    uint256 public maxStaleness = 0;
 
     // --- current round state, per feed id ---
     mapping(bytes32 => address[]) private feedPublishers; // who submitted this round
@@ -50,6 +55,7 @@ contract BeaconOracleV2 is Ownable {
     event MinPublishersSet(uint256 minPublishers);
     event MaxDeviationBpsSet(uint256 bps);
     event DeviationSlashBpsSet(uint256 bps);
+    event MaxStalenessSet(uint256 seconds_);
 
     constructor(IBeaconStaking staking_) Ownable(msg.sender) {
         require(address(staking_) != address(0), "zero staking");
@@ -97,15 +103,17 @@ contract BeaconOracleV2 is Ownable {
     function finalizeRound(bytes32 id) external {
         address[] storage pubs = feedPublishers[id];
         uint256 n = pubs.length;
-        require(n >= minPublishers && n > 0, "quorum");
+        require(_freshCount(id, n) >= minPublishers && n > 0, "quorum");
 
         uint256 m = _aggregate(id, n);
         latestAggregate[id] = m;
         latestAggregateAt[id] = block.timestamp;
 
-        // Slash any publisher whose submission deviated beyond the threshold.
+        // Slash any fresh publisher whose submission deviated beyond the threshold.
+        // Stale submissions are excluded from the median, so they aren't judged here.
         for (uint256 i = 0; i < n; i++) {
             address p = pubs[i];
+            if (!_isFresh(id, p)) continue;
             uint256 v = submission[id][p];
             uint256 diff = v > m ? v - m : m - v;
             if (m > 0 && (diff * 10_000) / m > maxDeviationBps) {
@@ -148,6 +156,12 @@ contract BeaconOracleV2 is Ownable {
         emit DeviationSlashBpsSet(bps);
     }
 
+    /// @notice Set the staleness window (seconds); 0 disables staleness filtering.
+    function setMaxStaleness(uint256 seconds_) external onlyOwner {
+        maxStaleness = seconds_;
+        emit MaxStalenessSet(seconds_);
+    }
+
     // --- internal ---------------------------------------------------------
 
     /// @dev Stake-weighted median of the current submissions for `id`. Each publisher's
@@ -160,20 +174,25 @@ contract BeaconOracleV2 is Ownable {
         address[] storage pubs = feedPublishers[id];
         uint256[] memory vals = new uint256[](n);
         uint256[] memory wts = new uint256[](n);
+        uint256 k = 0; // number of fresh submissions
         uint256 total = 0;
         for (uint256 i = 0; i < n; i++) {
-            vals[i] = submission[id][pubs[i]];
-            uint256 w = staking.poolStake(pubs[i]);
-            wts[i] = w;
+            address p = pubs[i];
+            if (!_isFresh(id, p)) continue; // stale submissions don't count
+            vals[k] = submission[id][p];
+            uint256 w = staking.poolStake(p);
+            wts[k] = w;
             total += w;
+            k++;
         }
+        if (k == 0) return 0;
         // Degenerate case (no stake recorded): fall back to equal weights.
         if (total == 0) {
-            for (uint256 i = 0; i < n; i++) wts[i] = 1;
-            total = n;
+            for (uint256 i = 0; i < k; i++) wts[i] = 1;
+            total = k;
         }
-        // Insertion sort the (value, weight) pairs by value ascending.
-        for (uint256 i = 1; i < n; i++) {
+        // Insertion sort the first k (value, weight) pairs by value ascending.
+        for (uint256 i = 1; i < k; i++) {
             uint256 kv = vals[i];
             uint256 kw = wts[i];
             uint256 j = i;
@@ -186,10 +205,27 @@ contract BeaconOracleV2 is Ownable {
             wts[j] = kw;
         }
         uint256 cum = 0;
-        for (uint256 i = 0; i < n; i++) {
+        for (uint256 i = 0; i < k; i++) {
             cum += wts[i];
             if (2 * cum >= total) return vals[i];
         }
-        return vals[n - 1]; // unreachable: cumulative always reaches total
+        return vals[k - 1]; // unreachable: cumulative always reaches total
+    }
+
+    /// @dev Whether a publisher's submission is within the staleness window.
+    function _isFresh(bytes32 id, address p) internal view returns (bool) {
+        if (maxStaleness == 0) return true;
+        return block.timestamp - submittedAt[id][p] <= maxStaleness;
+    }
+
+    /// @dev Count of fresh submissions in the current round.
+    function _freshCount(bytes32 id, uint256 n) internal view returns (uint256) {
+        if (maxStaleness == 0) return n;
+        address[] storage pubs = feedPublishers[id];
+        uint256 k = 0;
+        for (uint256 i = 0; i < n; i++) {
+            if (_isFresh(id, pubs[i])) k++;
+        }
+        return k;
     }
 }
