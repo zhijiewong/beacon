@@ -7,7 +7,12 @@
 > [`docs/publisher-onboarding.md`](./publisher-onboarding.md).
 
 These are drafts to send *yourself* — nothing here has been posted anywhere. Pick the format
-per channel, fill the `<…>` slots, and paste the live dashboard + repo links.
+per channel and fill the per-recipient `<…>` slots (`<name>`, `<specific reason>`). The shared
+links are already filled in:
+
+- **Dashboard:** https://zhijiewong.github.io/beacon-index/
+- **Code:** https://github.com/zhijiewong/beacon
+- **Publisher runbook:** https://github.com/zhijiewong/beacon/blob/main/docs/publisher-onboarding.md
 
 ---
 
@@ -67,6 +72,9 @@ BEACON**, and **rewards aren't funded** yet. No token launch, no yield pitch. It
 picks-and-shovels bet on the agentic-settlement future, and I want a couple of credible
 co-publishers on the record. DM me. 🔦
 
+**7/** Live rate → https://zhijiewong.github.io/beacon-index/ · code + publisher runbook →
+https://github.com/zhijiewong/beacon
+
 ---
 
 ## C. Cold email / longer DM
@@ -104,9 +112,10 @@ today. The ask is to put a couple of credible, independent publishers on the rec
 median is real rather than a self-demo. A professional audit gates anything with real value.
 
 If a neutral, economically-secured rate for AI compute is interesting to you, I'd love to walk
-you through it — or you can just follow the runbook: <repo/onboarding link>.
+you through it — or you can just follow the runbook:
+https://github.com/zhijiewong/beacon/blob/main/docs/publisher-onboarding.md
 
-Dashboard: <live dashboard link> · Code: <repo link>
+Dashboard: https://zhijiewong.github.io/beacon-index/ · Code: https://github.com/zhijiewong/beacon
 
 Thanks,
 <your name>
@@ -134,7 +143,8 @@ on-chain.
 
 **The publisher role:** self-stake the minimum, submit the open-source index each round; the
 contract publishes the stake-weighted median and slashes deviation past tolerance.
-Runbook + scripts: <onboarding link>.
+Runbook + scripts: https://github.com/zhijiewong/beacon/blob/main/docs/publisher-onboarding.md
+Code: https://github.com/zhijiewong/beacon · Dashboard: https://zhijiewong.github.io/beacon-index/
 
 **Honest caveats:** Base Sepolia testnet, **unaudited**, staked token is **valueless**, rewards
 **not funded**, no token launch. This is bootstrapping a credible multi-publisher feed, not a
