@@ -237,7 +237,25 @@ dashboard reads them. v1 oracle stays live for the daily collector.)
 (−5%), the two honest publishers untouched. This is the Phase-2 proof point "slashing
 demonstrably deters a bad feed," done on a public testnet rather than only in unit tests.
 
+**Publisher onboarding (kit + live run).** `docs/publisher-onboarding.md` is the runbook a
+prospective publisher follows — the staking economics, the slashing risk, the exact steps,
+and the honest caveats (testnet-only, unaudited). The kit's scripts (`fund-publisher.js`,
+`register-publisher.js`, `publish-to-oracle-v2.js`) were run end-to-end against the live
+contracts: a fresh wallet was funded, self-staked the 1000-BEACON minimum to become an
+eligible publisher, and posted a frontier submission — all on Base Sepolia. Recruiting the
+publishers themselves is now a *people* problem, not a code one: the rails exist.
+
+**Demand side — settling against the rate.** `IBeaconOracle` is the minimal read interface
+an integrator depends on (`latestValue(id) → (value, timestamp)`), and
+`examples/BeaconConsumer.sol` is the reference integration: read the rate, reject a missing
+or stale value (its own `maxAge` guard, independent of the oracle's), then price settlement
+against it. Deployed live at **`0xB4dD193982d0248B666A155E0dF6F46DB541cF31`** pointed at the
+median oracle; `scripts/deploy-consumer.js` finalized the onboarding publisher's frontier
+round into the published rate (`136250000` = $1.3625/Mtok) and read it back **on-chain
+through the consumer**, producing a settlement quote ($1,362,500 for 1,000,000 Mtok). This
+is the §7 proof point "at least one external contract reading the on-chain feed," live.
+
 **Still open (Stage 3+):** wire the daily collector to publish through v2 (it still uses the
-single-publisher v1); make `MAX_DEVIATION_BPS`/`DEVIATION_SLASH_BPS`/staleness governable;
-recruit ≥2 independent publishers; the §11 open questions; and a **professional audit before
-any mainnet/real value**.
+single-publisher v1); recruit ≥2 **independent** publishers (the kit now exists — this is a
+people problem); the §11 open questions; and a **professional audit before any mainnet/real
+value**.
