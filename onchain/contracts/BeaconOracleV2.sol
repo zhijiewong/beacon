@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @notice Subset of BeaconStaking the oracle needs: gate submissions on eligibility
 ///         and trigger deviation slashing.
@@ -23,7 +24,7 @@ interface IBeaconStaking {
 ///         median and slashing, so a publisher isn't judged on data it didn't restate.
 /// @dev    TESTNET ONLY — unaudited. Round model: submissions accumulate until anyone
 ///         (subject to a quorum) finalizes; finalizing clears the round.
-contract BeaconOracleV2 is Ownable2Step {
+contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard {
     IBeaconStaking public immutable staking;
 
     /// Hard cap on the configurable slash — equals staking's MAX_SLASH_BPS so that
@@ -104,8 +105,11 @@ contract BeaconOracleV2 is Ownable2Step {
     // --- finalization -----------------------------------------------------
 
     /// @notice Aggregate the round by median, publish it, slash deviators, and clear the
-    ///         round. Permissionless but quorum-gated.
-    function finalizeRound(bytes32 id) external {
+    ///         round. Permissionless but quorum-gated. Follows checks-effects-interactions:
+    ///         the round is fully cleared before any external `staking.slash` call, and the
+    ///         function is `nonReentrant` — so it stays safe even if the staked token were
+    ///         ever a hook-bearing one.
+    function finalizeRound(bytes32 id) external nonReentrant {
         address[] storage pubs = feedPublishers[id];
         uint256 n = pubs.length;
         require(_freshCount(id, n) >= minPublishers && n > 0, "quorum");
@@ -114,21 +118,25 @@ contract BeaconOracleV2 is Ownable2Step {
         latestAggregate[id] = m;
         latestAggregateAt[id] = block.timestamp;
 
-        // Slash any fresh publisher whose submission deviated beyond the threshold.
+        // Collect deviators (fresh + beyond threshold) into memory before mutating state.
         // Stale submissions are excluded from the median, so they aren't judged here.
+        address[] memory toSlash = new address[](n);
+        uint256[] memory slashVals = new uint256[](n);
+        uint256 s = 0;
         for (uint256 i = 0; i < n; i++) {
             address p = pubs[i];
             if (!_isFresh(id, p)) continue;
             uint256 v = submission[id][p];
             uint256 diff = v > m ? v - m : m - v;
             if (m > 0 && (diff * 10_000) / m > maxDeviationBps) {
-                staking.slash(p, deviationSlashBps);
-                emit PublisherSlashed(id, p, v, m);
+                toSlash[s] = p;
+                slashVals[s] = v;
+                s++;
             }
         }
         emit RoundFinalized(id, m, n);
 
-        // Clear the round for a fresh start.
+        // Effects: clear the round for a fresh start, before any external call.
         for (uint256 i = 0; i < n; i++) {
             address p = pubs[i];
             delete submission[id][p];
@@ -136,6 +144,12 @@ contract BeaconOracleV2 is Ownable2Step {
             delete hasSubmitted[id][p];
         }
         delete feedPublishers[id];
+
+        // Interactions: slash deviators last (external calls into staking).
+        for (uint256 i = 0; i < s; i++) {
+            staking.slash(toSlash[i], deviationSlashBps);
+            emit PublisherSlashed(id, toSlash[i], slashVals[i], m);
+        }
     }
 
     // --- governance -------------------------------------------------------
