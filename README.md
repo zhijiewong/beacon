@@ -53,9 +53,9 @@ Beacon's distinction is two things they structurally can't offer:
 | Contract | Address |
 |----------|---------|
 | BEACON token | [`0x7848eAD4459C8334854B015C49F10dFb02B5dC83`](https://sepolia.basescan.org/address/0x7848eAD4459C8334854B015C49F10dFb02B5dC83) |
-| BeaconStaking | [`0xcB89521036C457C050AdE2e3501449D8A6878182`](https://sepolia.basescan.org/address/0xcB89521036C457C050AdE2e3501449D8A6878182) |
-| BeaconOracleV2 | [`0x323e13051725e0b06b598B2Ceaff414Ac7A84eEe`](https://sepolia.basescan.org/address/0x323e13051725e0b06b598B2Ceaff414Ac7A84eEe) |
-| BeaconConsumer | [`0xB4dD193982d0248B666A155E0dF6F46DB541cF31`](https://sepolia.basescan.org/address/0xB4dD193982d0248B666A155E0dF6F46DB541cF31) |
+| BeaconStaking | [`0x23783C0F305dA38Ee57baE4fe507ea078Bd52602`](https://sepolia.basescan.org/address/0x23783C0F305dA38Ee57baE4fe507ea078Bd52602) |
+| BeaconOracleV2 | [`0x7bA170f7e156cCCDeDcf5757233b0d65fF3C497C`](https://sepolia.basescan.org/address/0x7bA170f7e156cCCDeDcf5757233b0d65fF3C497C) |
+| BeaconConsumer | [`0x60ED1326A7FCB132CFceD2C4f407cD30D8FE5ef7`](https://sepolia.basescan.org/address/0x60ED1326A7FCB132CFceD2C4f407cD30D8FE5ef7) |
 
 The `onchain/*-deployed.json` records are the source of truth (addresses change on redeploy).
 

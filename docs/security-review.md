@@ -19,7 +19,7 @@ BEACON + rewardToken = trusted standard ERC-20s set at deploy/governance time).
 | 2 | `minPublishers = 1` (current live config) ⇒ no real economic security; single publisher = trust | High (config) | Open — raise to ≥2 once independent publishers exist |
 | 3 | Share-inflation / first-depositor vault attack | — | **Mitigated** (verified + regression test) |
 | 4 | Changing `rewardToken` strands unclaimed rewards in the old token; old token then rescuable | Medium | **Fixed in source** (set-once) — redeploy pending |
-| 5 | `finalizeRound` makes external `slash` calls before clearing round state | Low (non-exploitable w/ non-hook token) | Harden before mainnet (CEI / `nonReentrant`) |
+| 5 | `finalizeRound` makes external `slash` calls before clearing round state | Low (non-exploitable w/ non-hook token) | **Fixed + deployed** (CEI + `nonReentrant`) |
 | 6 | `finalizeRound` unbounded loop over publishers | Low | **Fixed in source** (`maxPublishersPerRound` cap) — redeploy pending |
 | 7 | Rounding dust in unbonding (`totalUnbonding` vs per-staker scale) | Low | Add invariant tests |
 | 8 | Owner is a single highly-privileged key (slash, pause, params, distribute) | Informational | Multisig + timelock before mainnet |
@@ -67,11 +67,12 @@ donation-inflation attack. **It is not exploitable here**, for two structural re
 Verified by reading every writer of `poolStake`/`totalShares`. Recommend an explicit invariant
 test (`poolStake ≤ totalShares` in asset terms; no-donation assertion) to lock this in.
 
-> **Resolution note (source ahead of testnet bytecode):** Findings 3, 4, and 6 are addressed
-> in source with tests (54 Solidity tests green). The **deployed Base Sepolia contracts still
-> run the prior bytecode** — these fixes go live on the next coordinated redeploy of
-> staking + oracle (which cascades to re-`setSlasher` and a consumer redeploy). On testnet
-> that churn isn't worth doing per-fix; batch it with the remaining pre-mainnet hardening.
+> **Resolution note:** Findings 3, 4, 5, and 6 are addressed in source with tests (54 Solidity
+> tests green) **and shipped live** in a coordinated hardening redeploy on Base Sepolia
+> (2026-06-14): BeaconStaking `0x23783C0F305dA38Ee57baE4fe507ea078Bd52602`, BeaconOracleV2
+> `0x7bA170f7e156cCCDeDcf5757233b0d65fF3C497C` (re-wired as slasher), BeaconConsumer
+> `0x60ED1326A7FCB132CFceD2C4f407cD30D8FE5ef7` (re-verified reading the live rate). The
+> `onchain/*-deployed.json` records are the source of truth.
 
 ### 4. Changing `rewardToken` strands unclaimed rewards (Medium) — FIXED IN SOURCE (set-once)
 `claimable[publisher][staker]` balances are denominated in whatever `rewardToken` was set when
@@ -86,14 +87,14 @@ Owner-trusted and testnet, so not urgent, but it's a real foot-gun. **Fix applie
 once and then frozen, so it can never be repointed out from under owed rewards. Regression test:
 *"freezes the reward token after it is first set."*
 
-### 5. `finalizeRound` external calls before clearing state (Low) — harden before mainnet
-`finalizeRound` calls `staking.slash(...)` (which does `beacon.safeTransfer`) inside the slashing
-loop, *before* the round is cleared (clearing happens after). Standard checks-effects-interactions
-would clear first. **Not exploitable today:** BEACON is a plain OZ ERC-20 with no transfer hook,
-`staking`/`beacon` are immutable trusted contracts, and `slashTreasury` is governance-set — so no
-reentrant callback exists. Still, defense-in-depth before mainnet: add `nonReentrant` to
-`finalizeRound` (and/or snapshot submissions → clear round → then slash), so the contract stays
-safe even if the staked token is ever swapped for a hook-bearing one.
+### 5. `finalizeRound` external calls before clearing state (Low) — FIXED + DEPLOYED
+`finalizeRound` previously called `staking.slash(...)` inside the slashing loop *before* the round
+was cleared. **Not exploitable today** (BEACON is a plain OZ ERC-20 with no transfer hook;
+`staking`/`beacon` are immutable; `slashTreasury` is governance-set), but fixed for defense in
+depth. **Fix applied + deployed:** `finalizeRound` now snapshots deviators into memory, fully
+clears the round (effects), and only then calls `staking.slash` (interactions) — strict
+checks-effects-interactions — and the function is `nonReentrant`. Verified by the existing slash +
+round-clearing tests staying green after the refactor.
 
 ### 6. Unbounded `finalizeRound` loop (Low) — FIXED IN SOURCE (publisher cap)
 `feedPublishers[id]` grows with each unique publisher and `finalizeRound` loops it twice. Gas
@@ -146,10 +147,10 @@ multisig (Finding 8). The cap matching `DEVIATION_SLASH_BPS_CAP` correctly guara
 - [ ] **Professional third-party audit** (non-negotiable).
 - [ ] Raise `minPublishers` ≥ 2 (≥3 preferred) with independent, comparably-staked publishers (Finding 2).
 - [ ] Per-pool stake-weight cap or trimmed aggregation so no pool approaches 50% (Finding 1).
-- [x] Resolve `rewardToken`-change handling (Finding 4) — set-once in source.
-- [ ] `nonReentrant`/CEI on `finalizeRound` (Finding 5).
-- [x] `maxPublishersPerRound` cap (Finding 6) — in source.
-- [ ] **Redeploy** staking + oracle so Findings 4 & 6 fixes go live on Base Sepolia (cascades to
-      re-`setSlasher` + consumer redeploy + address/doc updates).
+- [x] Resolve `rewardToken`-change handling (Finding 4) — set-once, deployed.
+- [x] `nonReentrant`/CEI on `finalizeRound` (Finding 5) — deployed.
+- [x] `maxPublishersPerRound` cap (Finding 6) — deployed.
+- [x] **Coordinated hardening redeploy** done on Base Sepolia (Findings 4/5/6 live; slasher
+      re-wired; consumer redeployed + re-verified).
 - [ ] Ownership → multisig + timelock; split slasher/owner roles (Finding 8).
 - [ ] Add invariant/fuzz tests for unbonding accounting and reward solvency (7); share-ratio done (3).
