@@ -120,4 +120,33 @@ describe("BeaconStaking", function () {
     await expect(staking.connect(pub).rescueTokens(await token.getAddress(), other.address, 1n))
       .to.be.revertedWithCustomError(staking, "OwnableUnauthorizedAccount");
   });
+
+  // Regression for security-review Finding 3: the shares/assets vault must resist the
+  // ERC-4626 first-depositor / donation share-inflation attack. The defense is that pool
+  // assets are internal accounting (not balanceOf), so a raw token "donation" can't move
+  // the share price and round a later depositor's stake to zero.
+  it("resists the first-depositor share-inflation attack (no donation path)", async () => {
+    const { token, staking, deployer, pub, del } = await setup();
+    // Attacker opens a pool with a 1-wei self-stake (1 share) and tries to inflate it.
+    await staking.connect(pub).selfStake(1n);
+    expect(await staking.poolStake(pub.address)).to.equal(1n);
+    expect(await staking.totalShares(pub.address)).to.equal(1n);
+
+    // "Donate" a large amount straight to the contract to pump the share price.
+    await token.connect(deployer).transfer(await staking.getAddress(), 1_000n * E18);
+    expect(await staking.poolStake(pub.address)).to.equal(1n); // internal accounting ignores it
+
+    // Victim delegates a normal amount — must get fair shares, never rounded to zero.
+    const amt = 2_000n * E18;
+    await staking.connect(del).delegate(pub.address, amt);
+    expect(await staking.stakeOf(pub.address, del.address)).to.equal(amt);
+    expect(await staking.sharesOf(pub.address, del.address)).to.be.gt(0n);
+
+    // And recovers their full principal — nothing was siphoned by the attacker.
+    await staking.connect(del).requestUnstake(pub.address, amt);
+    await increaseTime(7 * 24 * 3600 + 1);
+    const before = await token.balanceOf(del.address);
+    await staking.connect(del).withdraw(pub.address);
+    expect(await token.balanceOf(del.address)).to.equal(before + amt);
+  });
 });
