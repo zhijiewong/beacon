@@ -329,9 +329,12 @@ contract BeaconStaking is ReentrancyGuard, Ownable2Step, Pausable {
         emit PublisherFeeSet(msg.sender, bps);
     }
 
-    /// @notice Set the reward token (e.g. USDC), owner only.
+    /// @notice Set the reward token (e.g. USDC), owner only. Settable once and then frozen:
+    ///         repointing it would strand rewards already owed in the old token and expose
+    ///         them to rescueTokens, so the token is immutable after the first set.
     function setRewardToken(address token) external onlyOwner {
         require(token != address(0), "zero token");
+        require(address(rewardToken) == address(0), "already set");
         rewardToken = IERC20(token);
         emit RewardTokenSet(token);
     }

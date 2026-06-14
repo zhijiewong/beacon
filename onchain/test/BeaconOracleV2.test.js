@@ -56,6 +56,18 @@ describe("BeaconOracleV2 — median aggregation + deviation slashing", function 
     expect(await staking.poolStake(p2.address)).to.equal(MIN);
   });
 
+  // Regression for security-review Finding 6: cap distinct publishers per round so
+  // finalize gas is bounded. An existing submitter can still overwrite; only a *new*
+  // publisher beyond the cap is rejected.
+  it("caps the number of distinct publishers in a round", async () => {
+    const { oracle, deployer, p1, p2, p3 } = await setup();
+    await oracle.connect(deployer).setMaxPublishersPerRound(2);
+    await oracle.connect(p1).postFeed(ID, 100);
+    await oracle.connect(p2).postFeed(ID, 102);
+    await oracle.connect(p1).postFeed(ID, 101); // existing publisher can overwrite
+    await expect(oracle.connect(p3).postFeed(ID, 103)).to.be.revertedWith("round full");
+  });
+
   it("does not slash submissions within the deviation threshold", async () => {
     const { staking, oracle, p1, p2, p3 } = await setup();
     await oracle.connect(p1).postFeed(ID, 100);

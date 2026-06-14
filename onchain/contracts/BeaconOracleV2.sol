@@ -39,6 +39,8 @@ contract BeaconOracleV2 is Ownable2Step {
     /// Submissions older than this (seconds) are excluded from aggregation and not
     /// slashed. 0 = disabled (no staleness filtering). Governance-settable.
     uint256 public maxStaleness = 0;
+    /// Max distinct publishers per round, so finalize gas stays bounded. Governance-settable.
+    uint256 public maxPublishersPerRound = 64;
 
     // --- current round state, per feed id ---
     mapping(bytes32 => address[]) private feedPublishers; // who submitted this round
@@ -57,6 +59,7 @@ contract BeaconOracleV2 is Ownable2Step {
     event MaxDeviationBpsSet(uint256 bps);
     event DeviationSlashBpsSet(uint256 bps);
     event MaxStalenessSet(uint256 seconds_);
+    event MaxPublishersPerRoundSet(uint256 n);
 
     constructor(IBeaconStaking staking_) Ownable(msg.sender) {
         require(address(staking_) != address(0), "zero staking");
@@ -70,6 +73,7 @@ contract BeaconOracleV2 is Ownable2Step {
         require(staking.isEligiblePublisher(msg.sender), "not eligible");
         require(value > 0, "zero value");
         if (!hasSubmitted[id][msg.sender]) {
+            require(feedPublishers[id].length < maxPublishersPerRound, "round full");
             hasSubmitted[id][msg.sender] = true;
             feedPublishers[id].push(msg.sender);
         }
@@ -161,6 +165,13 @@ contract BeaconOracleV2 is Ownable2Step {
     function setMaxStaleness(uint256 seconds_) external onlyOwner {
         maxStaleness = seconds_;
         emit MaxStalenessSet(seconds_);
+    }
+
+    /// @notice Cap the distinct publishers allowed per round (bounds finalize gas).
+    function setMaxPublishersPerRound(uint256 n) external onlyOwner {
+        require(n > 0, "zero cap");
+        maxPublishersPerRound = n;
+        emit MaxPublishersPerRoundSet(n);
     }
 
     // --- internal ---------------------------------------------------------

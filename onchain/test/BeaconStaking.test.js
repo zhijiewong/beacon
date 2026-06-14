@@ -121,6 +121,18 @@ describe("BeaconStaking", function () {
       .to.be.revertedWithCustomError(staking, "OwnableUnauthorizedAccount");
   });
 
+  // Regression for security-review Finding 4: the reward token is set once and then
+  // frozen, so governance can't repoint it and strand/expose rewards owed in the old token.
+  it("freezes the reward token after it is first set", async () => {
+    const { staking, deployer } = await setup();
+    const usdc = await (await ethers.getContractFactory("MockERC20")).deploy("USD Coin", "USDC", 6);
+    const dai = await (await ethers.getContractFactory("MockERC20")).deploy("Dai", "DAI", 18);
+    await staking.connect(deployer).setRewardToken(await usdc.getAddress());
+    expect(await staking.rewardToken()).to.equal(await usdc.getAddress());
+    await expect(staking.connect(deployer).setRewardToken(await dai.getAddress()))
+      .to.be.revertedWith("already set");
+  });
+
   // Regression for security-review Finding 3: the shares/assets vault must resist the
   // ERC-4626 first-depositor / donation share-inflation attack. The defense is that pool
   // assets are internal accounting (not balanceOf), so a raw token "donation" can't move

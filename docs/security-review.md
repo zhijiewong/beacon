@@ -17,10 +17,10 @@ BEACON + rewardToken = trusted standard ERC-20s set at deploy/governance time).
 |---|---------|----------|--------|
 | 1 | Honest-majority-by-stake: >50% pool stake controls the rate **and** can slash honest minority | High (inherent) | By design — document + mitigate operationally |
 | 2 | `minPublishers = 1` (current live config) ⇒ no real economic security; single publisher = trust | High (config) | Open — raise to ≥2 once independent publishers exist |
-| 3 | Share-inflation / first-depositor vault attack | — | **Mitigated** (verified) |
-| 4 | Changing `rewardToken` strands unclaimed rewards in the old token; old token then rescuable | Medium | Fix before mainnet |
+| 3 | Share-inflation / first-depositor vault attack | — | **Mitigated** (verified + regression test) |
+| 4 | Changing `rewardToken` strands unclaimed rewards in the old token; old token then rescuable | Medium | **Fixed in source** (set-once) — redeploy pending |
 | 5 | `finalizeRound` makes external `slash` calls before clearing round state | Low (non-exploitable w/ non-hook token) | Harden before mainnet (CEI / `nonReentrant`) |
-| 6 | `finalizeRound` unbounded loop over publishers | Low | Add max-publishers cap before mainnet |
+| 6 | `finalizeRound` unbounded loop over publishers | Low | **Fixed in source** (`maxPublishersPerRound` cap) — redeploy pending |
 | 7 | Rounding dust in unbonding (`totalUnbonding` vs per-staker scale) | Low | Add invariant tests |
 | 8 | Owner is a single highly-privileged key (slash, pause, params, distribute) | Informational | Multisig + timelock before mainnet |
 | 9 | Slasher has no per-time rate limit (5%/call, repeatable) | Informational | Acceptable; document |
@@ -67,7 +67,13 @@ donation-inflation attack. **It is not exploitable here**, for two structural re
 Verified by reading every writer of `poolStake`/`totalShares`. Recommend an explicit invariant
 test (`poolStake ≤ totalShares` in asset terms; no-donation assertion) to lock this in.
 
-### 4. Changing `rewardToken` strands unclaimed rewards (Medium) — fix before mainnet
+> **Resolution note (source ahead of testnet bytecode):** Findings 3, 4, and 6 are addressed
+> in source with tests (54 Solidity tests green). The **deployed Base Sepolia contracts still
+> run the prior bytecode** — these fixes go live on the next coordinated redeploy of
+> staking + oracle (which cascades to re-`setSlasher` and a consumer redeploy). On testnet
+> that churn isn't worth doing per-fix; batch it with the remaining pre-mainnet hardening.
+
+### 4. Changing `rewardToken` strands unclaimed rewards (Medium) — FIXED IN SOURCE (set-once)
 `claimable[publisher][staker]` balances are denominated in whatever `rewardToken` was set when
 `distributeRewards` ran. If governance calls `setRewardToken(B)` while users still hold unclaimed
 rewards in token A:
@@ -75,9 +81,10 @@ rewards in token A:
 - `rescueTokens` no longer treats A as protected, so the owner could withdraw the A balance that
   backs those owed rewards.
 
-Owner-trusted and testnet, so not urgent, but it's a real foot-gun. **Fix options:** forbid
-changing `rewardToken` once set (simplest), or make rewards per-token (escrow the distributed
-token and pin each `claimable` to its token). Add a test asserting owed rewards survive a token change.
+Owner-trusted and testnet, so not urgent, but it's a real foot-gun. **Fix applied:**
+`setRewardToken` now reverts with `"already set"` if the reward token is non-zero — it's settable
+once and then frozen, so it can never be repointed out from under owed rewards. Regression test:
+*"freezes the reward token after it is first set."*
 
 ### 5. `finalizeRound` external calls before clearing state (Low) — harden before mainnet
 `finalizeRound` calls `staking.slash(...)` (which does `beacon.safeTransfer`) inside the slashing
@@ -88,12 +95,14 @@ reentrant callback exists. Still, defense-in-depth before mainnet: add `nonReent
 `finalizeRound` (and/or snapshot submissions → clear round → then slash), so the contract stays
 safe even if the staked token is ever swapped for a hook-bearing one.
 
-### 6. Unbounded `finalizeRound` loop (Low)
+### 6. Unbounded `finalizeRound` loop (Low) — FIXED IN SOURCE (publisher cap)
 `feedPublishers[id]` grows with each unique publisher and `finalizeRound` loops it twice. Gas
-griefing is bounded by the **1000-BEACON eligibility cost per publisher** (`postFeed` requires
-`isEligiblePublisher`), so spamming distinct publishers is economically expensive. Still, add a
-`MAX_PUBLISHERS_PER_ROUND` cap (reject `postFeed` beyond it) before mainnet to bound finalize gas
-deterministically.
+griefing was already bounded by the **1000-BEACON eligibility cost per publisher** (`postFeed`
+requires `isEligiblePublisher`), so spamming distinct publishers is economically expensive.
+**Fix applied:** added a governable `maxPublishersPerRound` (default 64); `postFeed` rejects a
+*new* publisher past the cap (`"round full"`) while existing submitters can still overwrite.
+Finalize gas is now deterministically bounded. Regression test: *"caps the number of distinct
+publishers in a round."*
 
 ### 7. Rounding dust in unbonding accounting (Low)
 `totalUnbonding[publisher]` is decremented by the *scaled* `net` on `withdraw` and by `pendingCut`
@@ -137,7 +146,10 @@ multisig (Finding 8). The cap matching `DEVIATION_SLASH_BPS_CAP` correctly guara
 - [ ] **Professional third-party audit** (non-negotiable).
 - [ ] Raise `minPublishers` ≥ 2 (≥3 preferred) with independent, comparably-staked publishers (Finding 2).
 - [ ] Per-pool stake-weight cap or trimmed aggregation so no pool approaches 50% (Finding 1).
-- [ ] Resolve `rewardToken`-change handling (Finding 4).
-- [ ] `nonReentrant`/CEI on `finalizeRound` (Finding 5) + `MAX_PUBLISHERS_PER_ROUND` (Finding 6).
+- [x] Resolve `rewardToken`-change handling (Finding 4) — set-once in source.
+- [ ] `nonReentrant`/CEI on `finalizeRound` (Finding 5).
+- [x] `maxPublishersPerRound` cap (Finding 6) — in source.
+- [ ] **Redeploy** staking + oracle so Findings 4 & 6 fixes go live on Base Sepolia (cascades to
+      re-`setSlasher` + consumer redeploy + address/doc updates).
 - [ ] Ownership → multisig + timelock; split slasher/owner roles (Finding 8).
-- [ ] Add invariant/fuzz tests for share ratio, unbonding accounting, and reward solvency (3, 7).
+- [ ] Add invariant/fuzz tests for unbonding accounting and reward solvency (7); share-ratio done (3).
