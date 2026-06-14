@@ -35,24 +35,26 @@ else
   echo "[$(date -u +%FT%TZ)] backup: no snapshot change" >> "$LOG"
 fi
 
-# --- Publish the index to the on-chain oracle (Base Sepolia). Non-fatal: an
-# RPC/gas/key problem must never break collection or backup. Posts daily even if
-# values are unchanged, which refreshes each feed's on-chain `updatedAt` (a
-# liveness heartbeat for consumers' staleness checks). Requires onchain/.env
-# (publisher key) and onchain/deployed.json (contract address). ---
+# --- Publish the index to the economically-secured on-chain oracle v2 (Base
+# Sepolia). Non-fatal: an RPC/gas/key problem must never break collection or
+# backup. Posts + finalizes daily even if values are unchanged, which refreshes
+# each feed's on-chain `updatedAt` (a liveness heartbeat for consumers' staleness
+# checks) and routes the live feed through the stake-weighted-median + auto-slash
+# machinery the reference consumer reads. The publisher self-stakes to eligibility
+# on first run. Requires onchain/.env (publisher key) + staking/oracle-v2 records. ---
 ONCHAIN="$PROJECT/onchain"
-if [ -f "$ONCHAIN/.env" ] && [ -f "$ONCHAIN/deployed.json" ]; then
-  echo "[$(date -u +%FT%TZ)] onchain: publishing to Base Sepolia..." >> "$LOG"
+if [ -f "$ONCHAIN/.env" ] && [ -f "$ONCHAIN/staking-deployed.json" ] && [ -f "$ONCHAIN/oracle-v2-deployed.json" ]; then
+  echo "[$(date -u +%FT%TZ)] onchain: publishing to oracle v2 (Base Sepolia)..." >> "$LOG"
   if ( cd "$ONCHAIN" \
        && set -a && . ./.env && set +a \
        && PATH="$NODE_BIN:$PATH" CI=true HARDHAT_DISABLE_TELEMETRY_PROMPT=true \
-          node_modules/.bin/hardhat run scripts/publish.js --network baseSepolia ) >> "$LOG" 2>&1; then
+          node_modules/.bin/hardhat run scripts/publish-daily-v2.js --network baseSepolia ) >> "$LOG" 2>&1; then
     echo "[$(date -u +%FT%TZ)] onchain: ok" >> "$LOG"
   else
     echo "[$(date -u +%FT%TZ)] onchain: publish FAILED (non-fatal)" >> "$LOG"
   fi
 else
-  echo "[$(date -u +%FT%TZ)] onchain: skipped (.env or deployed.json missing)" >> "$LOG"
+  echo "[$(date -u +%FT%TZ)] onchain: skipped (.env or staking/oracle-v2 record missing)" >> "$LOG"
 fi
 
 # --- Publish the public dashboard: regenerate -> rebuild (Next.js static export)
