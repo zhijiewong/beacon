@@ -143,6 +143,20 @@ multisig (Finding 8). The cap matching `DEVIATION_SLASH_BPS_CAP` correctly guara
 - **51 Solidity tests pass**, covering slashing (incl. unbonding + split), rewards, staleness,
   stake-weighting, two-step ownership, pause, and rescue.
 
+## Static analysis (Slither 0.11.5)
+
+Ran `slither . --filter-paths "node_modules|test/|mocks/"` against the core contracts. Triage of
+every result (all reviewed; one fixed, the rest intentional/bounded):
+
+| Detector | Where | Verdict |
+|----------|-------|---------|
+| `missing-inheritance` | `BeaconOracleV2` should implement `IBeaconOracle` | **Fixed** — `BeaconOracleV2 is …, IBeaconOracle` with `latestValue` marked `override`, so the consumer-facing signature is now compiler-enforced. (Still flags retired v1 `BeaconOracle` — out of scope.) |
+| `missing-zero-check` | `setSlasher(slasher_)` | **Intentional** — `address(0)` deliberately *disables* the automated slasher (owner can still slash); documented in NatSpec. |
+| `calls-loop` | `_aggregate` → `staking.poolStake(p)`; `finalizeRound` → `staking.slash(p)` | **Bounded / acceptable** — both loops are capped by `maxPublishersPerRound` (Finding 6); `_aggregate` is a view; `slash` can't revert in-loop (deviators are eligible publishers with `poolStake ≥ MIN > 0`, and the slash bps is hard-capped at staking's max). |
+| `timestamp` | staleness / unbond cooldown / reward epoch / consumer `maxAge` | **Acceptable** — all windows are hours-to-days; sub-second sequencer timestamp drift on an L2 can't meaningfully game them. |
+
+No high/medium issues. Re-run Slither after any contract change before the audit.
+
 ## Pre-mainnet checklist (blocking)
 - [ ] **Professional third-party audit** (non-negotiable).
 - [ ] Raise `minPublishers` ≥ 2 (≥3 preferred) with independent, comparably-staked publishers (Finding 2).
@@ -156,4 +170,4 @@ multisig (Finding 8). The cap matching `DEVIATION_SLASH_BPS_CAP` correctly guara
 - [x] Foundry invariant/fuzz suite for the staking vault — **solvency** + **no-over-claim** hold
       across 8,192 randomized stake/unstake/withdraw/slash calls (`onchain/test/foundry/`).
       Extend to reward-accounting solvency next.
-- [ ] Static analysis (Slither) pass.
+- [x] Static analysis (Slither) pass — triaged; 1 fixed (interface inheritance), rest intentional/bounded (see above).

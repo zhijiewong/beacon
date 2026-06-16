@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IBeaconOracle} from "./IBeaconOracle.sol";
 
 /// @notice Subset of BeaconStaking the oracle needs: gate submissions on eligibility
 ///         and trigger deviation slashing.
@@ -24,7 +25,7 @@ interface IBeaconStaking {
 ///         median and slashing, so a publisher isn't judged on data it didn't restate.
 /// @dev    TESTNET ONLY — unaudited. Round model: submissions accumulate until anyone
 ///         (subject to a quorum) finalizes; finalizing clears the round.
-contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard {
+contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard, IBeaconOracle {
     IBeaconStaking public immutable staking;
 
     /// Hard cap on the configurable slash — equals staking's MAX_SLASH_BPS so that
@@ -92,8 +93,8 @@ contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard {
         return _aggregate(id, n);
     }
 
-    /// @notice Last finalized aggregate value and its timestamp (consumer read).
-    function latestValue(bytes32 id) external view returns (uint256 value, uint256 timestamp) {
+    /// @inheritdoc IBeaconOracle
+    function latestValue(bytes32 id) external view override returns (uint256 value, uint256 timestamp) {
         return (latestAggregate[id], latestAggregateAt[id]);
     }
 

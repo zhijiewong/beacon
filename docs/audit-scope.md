@@ -17,7 +17,7 @@
 | **Target chain** | Base (L2, OP-stack). Live on Base Sepolia; mainnet = Base |
 | **Tests** | 54 passing (Hardhat/Chai), `onchain/test/` |
 | **Prior review** | Internal pre-audit self-review: [`docs/security-review.md`](./security-review.md) |
-| **Existing tooling run** | Unit tests only. No prior Slither/Foundry-fuzz/formal pass — green-field for the firm |
+| **Existing tooling run** | 54 Hardhat unit tests + Foundry invariant suite (staking-vault solvency & no-over-claim, 8k+ calls) + a triaged Slither pass (1 fix, rest intentional/bounded — see `security-review.md`). No formal-verification pass yet |
 
 ## 2. Scope
 
