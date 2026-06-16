@@ -1,5 +1,7 @@
 # Beacon
 
+[![CI](https://github.com/zhijiewong/beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/zhijiewong/beacon/actions/workflows/ci.yml)
+
 > Working codename — name TBD.
 
 **A neutral, capability-normalized reference rate for LLM inference — published on-chain as an
