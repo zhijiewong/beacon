@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python:
+    name: Python index pipeline (unittest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # No dependencies — the pipeline is standard-library only.
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -t .
+
+  contracts:
+    name: Contracts (Hardhat unit + Foundry invariant)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: onchain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+      - name: Hardhat unit tests
+        run: npx hardhat test
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Install forge-std
+        run: git clone --depth 1 https://github.com/foundry-rs/forge-std lib/forge-std
+      - name: Foundry invariant tests
+        run: forge test --match-path "test/foundry/*"
+
+  slither:
+    name: Static analysis (Slither)
+    runs-on: ubuntu-latest
+    continue-on-error: true # advisory — triaged in docs/security-review.md
+    defaults:
+      run:
+        working-directory: onchain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install slither-analyzer
+      - run: slither . --filter-paths "node_modules|test/|mocks/"

@@ -1,9 +1,12 @@
 require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
+require("@nomicfoundation/hardhat-verify");
 
 /**
  * Beacon on-chain oracle — Hardhat config.
  * Base Sepolia deploy uses env: BASE_SEPOLIA_RPC (optional) and PRIVATE_KEY.
+ * Source verification: Sourcify (no key) is enabled; BaseScan/Etherscan needs an
+ * Etherscan v2 multichain key in ETHERSCAN_API_KEY (free from etherscan.io).
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
@@ -19,4 +22,8 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  // Etherscan v2 multichain key covers Base Sepolia (chainId 84532).
+  etherscan: { apiKey: process.env.ETHERSCAN_API_KEY || "" },
+  // Decentralized, key-free verification — works without an explorer API key.
+  sourcify: { enabled: true },
 };
