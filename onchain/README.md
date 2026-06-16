@@ -18,8 +18,15 @@ npm install
 
 ## Test (local, free, no wallet)
 ```bash
-npm test            # Hardhat unit tests for BeaconOracle
+npm test                              # Hardhat unit tests (54) — all contracts
+forge test --match-path "test/foundry/*"   # Foundry invariant/fuzz tests for the staking vault
 ```
+Unit tests (Hardhat/Chai) check specific behaviors; the Foundry suite fuzzes random
+stake/unstake/withdraw/slash sequences and asserts the vault stays **solvent** and stakers
+can never collectively **over-claim** their pool. Foundry config is `foundry.toml`; it shares
+`contracts/` but keeps its own `out-foundry/`/`cache_forge/` so it never clashes with Hardhat.
+Install Foundry once (`brew install foundry`) and `forge-std` (`git clone --depth 1
+https://github.com/foundry-rs/forge-std lib/forge-std`).
 
 ## End-to-end local demo (free, no wallet)
 Quickest — one in-process run that deploys, posts the real index, and verifies read-back:

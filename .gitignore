@@ -8,6 +8,11 @@ plots/
 onchain/node_modules/
 onchain/artifacts/
 onchain/cache/
+
+# onchain (Foundry — invariant/fuzz tests)
+onchain/lib/
+onchain/out-foundry/
+onchain/cache_forge/
 .env
 site/
 web/node_modules/

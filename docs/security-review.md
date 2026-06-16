@@ -153,4 +153,7 @@ multisig (Finding 8). The cap matching `DEVIATION_SLASH_BPS_CAP` correctly guara
 - [x] **Coordinated hardening redeploy** done on Base Sepolia (Findings 4/5/6 live; slasher
       re-wired; consumer redeployed + re-verified).
 - [ ] Ownership → multisig + timelock; split slasher/owner roles (Finding 8).
-- [ ] Add invariant/fuzz tests for unbonding accounting and reward solvency (7); share-ratio done (3).
+- [x] Foundry invariant/fuzz suite for the staking vault — **solvency** + **no-over-claim** hold
+      across 8,192 randomized stake/unstake/withdraw/slash calls (`onchain/test/foundry/`).
+      Extend to reward-accounting solvency next.
+- [ ] Static analysis (Slither) pass.

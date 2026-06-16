@@ -1,0 +1,20 @@
+# Foundry config — runs invariant/fuzz tests alongside the Hardhat unit tests.
+# Shares the same contracts/ source; keeps its own test dir + build output so it
+# never clashes with Hardhat (artifacts/, cache/, the JS tests in test/).
+[profile.default]
+src = "contracts"
+test = "test/foundry"
+out = "out-foundry"
+cache_path = "cache_forge"
+libs = ["lib", "node_modules"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+remappings = [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+
+[invariant]
+runs = 256
+depth = 32
+fail_on_revert = false
