@@ -77,6 +77,17 @@ prices. It measures.
 For each listing we record: `provider, model, input_usd_per_mtok, output_usd_per_mtok,
 context_window, observed_at (UTC), source_url, source_type {first_party | host | archive}`.
 
+**Multi-source reconciliation (4.1.1).** A single price source is both a point of failure and a
+manipulation surface, so the collector pulls from **independent sources** (currently OpenRouter
+and models.dev; both public, no API key) and reconciles them per model: each source is first
+collapsed to one vote (the median over its hosts, so a source's host count can't dominate), then
+the per-model price is the **median across sources**. A source failing never aborts a run. Each
+reconciled listing carries provenance — `sources`, `n_sources`, `source_spread_ratio`, and a
+`disputed` flag (set when sources disagree by more than 25% of the median). This gives
+manipulation resistance once ≥3 sources agree, and a disagreement alarm in the meantime. *(Cross-
+source model identity is matched on a normalized key; an unmatched model simply stays single-
+source — see `beacon/reconcile.py`.)*
+
 ### 4.2 Capability data
 - Public benchmark leaderboards and provider/Epoch/Artificial Analysis reported scores for:
   **GPQA-Diamond** (knowledge/reasoning), **AIME 2024–2025** (math), **SWE-bench Verified** (coding),

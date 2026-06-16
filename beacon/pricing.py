@@ -40,6 +40,7 @@ class Listing:
     observed_at: str
     source_type: str
     source_url: str
+    source: str = "openrouter"  # which price source produced this listing
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -87,4 +88,48 @@ def parse_openrouter_model(raw: dict, observed_at: str) -> Optional[Listing]:
         observed_at=observed_at,
         source_type="host",  # OpenRouter aggregates/hosts; see methodology 4.1
         source_url="https://openrouter.ai/api/v1/models",
+        source="openrouter",
     )
+
+
+def parse_modelsdev_payload(payload: dict, observed_at: str) -> "list[Listing]":
+    """Parse the models.dev /api.json payload into Listings (a second price source).
+
+    Shape: ``{provider_id: {name, models: {model_id: {id, name, cost: {input, output}}}}}``.
+    Unlike OpenRouter, models.dev quotes ``cost.input``/``cost.output`` already in
+    USD per 1M tokens, so no per-token conversion. Free/unpriced models are dropped.
+    """
+    out = []
+    for _provider_id, prov in payload.items():
+        models = prov.get("models") if isinstance(prov, dict) else None
+        if not isinstance(models, dict):
+            continue
+        for model_id, m in models.items():
+            cost = m.get("cost") if isinstance(m, dict) else None
+            if not isinstance(cost, dict):
+                continue
+            try:
+                input_mtok = float(cost.get("input", 0) or 0)
+                output_mtok = float(cost.get("output", 0) or 0)
+            except (TypeError, ValueError):
+                continue
+            if input_mtok < 0 or output_mtok < 0:
+                continue
+            if input_mtok == 0 and output_mtok == 0:
+                continue
+            mid = m.get("id", model_id)
+            provider = mid.split("/", 1)[0] if "/" in mid else _provider_id
+            out.append(Listing(
+                provider=provider,
+                model=mid,
+                name=m.get("name", mid),
+                input_mtok=input_mtok,
+                output_mtok=output_mtok,
+                blended_mtok=blended_price(input_mtok, output_mtok),
+                context_length=(m.get("limit") or {}).get("context") if isinstance(m.get("limit"), dict) else None,
+                observed_at=observed_at,
+                source_type="host",
+                source_url="https://models.dev/api.json",
+                source="models.dev",
+            ))
+    return out
