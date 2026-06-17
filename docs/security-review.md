@@ -15,7 +15,7 @@ BEACON + rewardToken = trusted standard ERC-20s set at deploy/governance time).
 
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
-| 1 | Honest-majority-by-stake: >50% pool stake controls the rate **and** can slash honest minority | High (inherent) | By design — document + mitigate operationally |
+| 1 | Honest-majority-by-stake: >50% pool stake controls the rate **and** can slash honest minority | High (inherent) | **Mitigation lever added** — governable `maxWeightBps` per-pool weight cap (in source) |
 | 2 | `minPublishers = 1` (current live config) ⇒ no real economic security; single publisher = trust | High (config) | Open — raise to ≥2 once independent publishers exist |
 | 3 | Share-inflation / first-depositor vault attack | — | **Mitigated** (verified + regression test) |
 | 4 | Changing `rewardToken` strands unclaimed rewards in the old token; old token then rescuable | Medium | **Fixed in source** (set-once) — redeploy pending |
@@ -39,10 +39,16 @@ value (`2*cum >= total`). Two consequences:
   the classic >50% oracle attack, here weaponized against dissenters.
 
 This is the foundational Pyth-OIS trust assumption (security = honest majority *by stake*), not
-a bug, but it must be stated loudly. **Mitigations (operational, pre-mainnet):**
+a bug, but it must be stated loudly. **Mitigation lever added (in source):** `BeaconOracleV2`
+now has a governable **`maxWeightBps`** — each pool's weight in the stake-weighted median is
+capped at that fraction of the round's total stake. It defaults to **5000 (50%)**, which is a
+no-op for normal rounds but caps a true super-majority; governance should **tighten it (e.g.
+4000)** once ≥3 independent publishers exist, at which point no single pool's weight reaches half
+the total and it can no longer dictate the rate (regression-tested: a 60%-stake pool stops
+determining the median once the cap is set to 40%). Remaining operational mitigations:
 - Recruit independent publishers with *comparable* stake — no single pool near 50%.
-- Governance caps per-pool stake weight, or uses a trimmed/clamped aggregation, before real value.
-- Until then, the rate is only as trustworthy as the dominant staker. See Finding 2.
+- Until publishers + a tightened cap exist, the rate is only as trustworthy as the dominant
+  staker. See Finding 2.
 
 ### 2. `minPublishers = 1` gives no economic security today (High, configuration)
 With the current live `minPublishers = 1`, a round finalizes on a **single** submission: the
@@ -160,7 +166,7 @@ No high/medium issues. Re-run Slither after any contract change before the audit
 ## Pre-mainnet checklist (blocking)
 - [ ] **Professional third-party audit** (non-negotiable).
 - [ ] Raise `minPublishers` ≥ 2 (≥3 preferred) with independent, comparably-staked publishers (Finding 2).
-- [ ] Per-pool stake-weight cap or trimmed aggregation so no pool approaches 50% (Finding 1).
+- [x] Per-pool stake-weight cap (`maxWeightBps`) added (Finding 1) — in source; tighten to <50% once ≥3 publishers exist.
 - [x] Resolve `rewardToken`-change handling (Finding 4) — set-once, deployed.
 - [x] `nonReentrant`/CEI on `finalizeRound` (Finding 5) — deployed.
 - [x] `maxPublishersPerRound` cap (Finding 6) — deployed.

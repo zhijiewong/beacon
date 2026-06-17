@@ -101,6 +101,24 @@ describe("BeaconOracleV2 — median aggregation + deviation slashing", function 
     expect(await oracle.median(ID)).to.equal(100);
   });
 
+  it("caps per-pool weight so a dominant staker can't dictate the rate (Finding 1)", async () => {
+    const { token, staking, oracle, deployer, p1, p2, p3 } = await setup();
+    await token.connect(p1).approve(await staking.getAddress(), 2_000n * E18);
+    await staking.connect(p1).selfStake(2_000n * E18); // p1 pool 3000 (60% of 5000)
+
+    await oracle.connect(p1).postFeed(ID, 100); // weight 3000
+    await oracle.connect(p2).postFeed(ID, 110); // weight 1000
+    await oracle.connect(p3).postFeed(ID, 112); // weight 1000
+
+    // Default cap (50%) preserves strong stake-weighting: p1 still sets it to 100.
+    expect(await oracle.median(ID)).to.equal(100);
+
+    // Governance tightens the per-pool cap to 40%: p1's weight is clamped below half,
+    // so it can no longer single-handedly determine the median.
+    await oracle.connect(deployer).setMaxWeightBps(4000);
+    expect(await oracle.median(ID)).to.equal(110);
+  });
+
   it("falls back to a plain median when stakes are equal", async () => {
     const { oracle, p1, p2, p3 } = await setup();
     await oracle.connect(p1).postFeed(ID, 100);

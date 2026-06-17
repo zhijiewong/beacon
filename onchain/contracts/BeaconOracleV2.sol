@@ -43,6 +43,11 @@ contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard, IBeaconOracle {
     uint256 public maxStaleness = 0;
     /// Max distinct publishers per round, so finalize gas stays bounded. Governance-settable.
     uint256 public maxPublishersPerRound = 64;
+    /// Cap on any single pool's weight in the stake-weighted median, in basis points of the
+    /// round's total stake (default 50% = no single pool can *exceed* half). Governance can
+    /// tighten it (e.g. 40%) once ≥3 independent publishers exist so no one pool dictates the
+    /// rate (security-review Finding 1). Equal-stake rounds are unaffected.
+    uint256 public maxWeightBps = 5000;
 
     // --- current round state, per feed id ---
     mapping(bytes32 => address[]) private feedPublishers; // who submitted this round
@@ -62,6 +67,7 @@ contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard, IBeaconOracle {
     event DeviationSlashBpsSet(uint256 bps);
     event MaxStalenessSet(uint256 seconds_);
     event MaxPublishersPerRoundSet(uint256 n);
+    event MaxWeightBpsSet(uint256 bps);
 
     constructor(IBeaconStaking staking_) Ownable(msg.sender) {
         require(address(staking_) != address(0), "zero staking");
@@ -189,6 +195,14 @@ contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard, IBeaconOracle {
         emit MaxPublishersPerRoundSet(n);
     }
 
+    /// @notice Set the per-pool weight cap (bps of round total) in the stake-weighted median.
+    ///         Tighten below 5000 so no single pool can determine the rate (Finding 1).
+    function setMaxWeightBps(uint256 bps) external onlyOwner {
+        require(bps > 0 && bps <= 10_000, "bad weight cap");
+        maxWeightBps = bps;
+        emit MaxWeightBpsSet(bps);
+    }
+
     // --- internal ---------------------------------------------------------
 
     /// @dev Stake-weighted median of the current submissions for `id`. Each publisher's
@@ -231,12 +245,18 @@ contract BeaconOracleV2 is Ownable2Step, ReentrancyGuard, IBeaconOracle {
             vals[j] = kv;
             wts[j] = kw;
         }
+        // Cap any single pool's weight at maxWeightBps of the round's total, while keeping
+        // the median threshold on the *raw* total. Below the default 50% this means no single
+        // pool's weight alone reaches half the total, so it can't dictate the rate (Finding 1).
+        uint256 cap = (total * maxWeightBps) / 10_000;
         uint256 cum = 0;
         for (uint256 i = 0; i < k; i++) {
-            cum += wts[i];
+            cum += wts[i] > cap ? cap : wts[i];
             if (2 * cum >= total) return vals[i];
         }
-        return vals[k - 1]; // unreachable: cumulative always reaches total
+        // Reachable only when heavy capping leaves cumulative below half — a pool was so
+        // dominant its weight was clamped away; default to the highest submission.
+        return vals[k - 1];
     }
 
     /// @dev Whether a publisher's submission is within the staleness window.
