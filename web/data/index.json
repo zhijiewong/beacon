@@ -1,20 +1,20 @@
 {
-  "as_of": "2026-06-13",
-  "model_count": 307,
+  "as_of": "2026-06-24",
+  "model_count": 1947,
   "methodology_version": "0.1",
   "benchmark": "GPQA-Diamond",
   "tiers": [
     {
       "name": "frontier",
       "threshold": 90,
-      "value_usd_per_mtok": 1.3625,
-      "spread": 11.258278145695364,
+      "value_usd_per_mtok": 1.444375,
+      "spread": 10.790225325293559,
       "n_qualifying": 6,
       "provider_count": 6,
       "cheapest_model": "moonshotai/kimi-k2.6",
       "prices": [
         0.5249999999999999,
-        1.3625,
+        1.444375,
         1.875,
         4.5,
         10.0,
@@ -31,12 +31,12 @@
       "provider_count": 8,
       "cheapest_model": "minimax/minimax-m3",
       "prices": [
-        0.07425,
+        0.162125,
         0.5249999999999999,
-        0.54375,
+        0.5828125,
         1.15,
-        1.3625,
-        1.505,
+        1.444375,
+        1.58375,
         1.875,
         4.5,
         10.0,
@@ -48,21 +48,21 @@
     {
       "name": "gpt-4-class",
       "threshold": 50,
-      "value_usd_per_mtok": 0.05675000000000001,
-      "spread": 76.49646203863072,
+      "value_usd_per_mtok": 0.162125,
+      "spread": 52.01898693022954,
       "n_qualifying": 14,
       "provider_count": 10,
-      "cheapest_model": "openai/gpt-oss-20b",
+      "cheapest_model": "openai/gpt-oss-120b",
       "prices": [
-        0.05675000000000001,
-        0.07425,
+        0.064,
+        0.162125,
         0.26249999999999996,
         0.5249999999999999,
-        0.54375,
+        0.5828125,
         0.8,
         1.15,
-        1.3625,
-        1.505,
+        1.444375,
+        1.58375,
         1.875,
         4.5,
         10.0,
@@ -73,8 +73,8 @@
     }
   ],
   "key_figures": {
-    "providers_total": 53,
-    "multiple": 24.00881057268722
+    "providers_total": 187,
+    "multiple": 8.909020817270624
   },
   "onchain": {
     "address": "0xD3676E36b645883E1554489A1F9D2860ce6e4997",
@@ -110,44 +110,9 @@
   "charts": {
     "scatter": [
       {
-        "model": "minimax/minimax-m3",
-        "capability": 92.9,
-        "price": 0.5249999999999999
-      },
-      {
-        "model": "anthropic/claude-opus-4.8",
-        "capability": 93.6,
-        "price": 10.0
-      },
-      {
-        "model": "qwen/qwen3.7-max",
-        "capability": 92.3,
-        "price": 1.875
-      },
-      {
-        "model": "openai/gpt-5.5",
-        "capability": 93.5,
-        "price": 11.25
-      },
-      {
-        "model": "deepseek/deepseek-v4-pro",
-        "capability": 88.8,
-        "price": 0.54375
-      },
-      {
-        "model": "moonshotai/kimi-k2.6",
-        "capability": 91.1,
-        "price": 1.3625
-      },
-      {
-        "model": "z-ai/glm-5.1",
-        "capability": 86.2,
-        "price": 1.505
-      },
-      {
-        "model": "google/gemini-3.1-pro-preview",
-        "capability": 94.1,
-        "price": 4.5
+        "model": "anthropic/claude-3.5-haiku",
+        "capability": 40.8,
+        "price": 1.6
       },
       {
         "model": "anthropic/claude-opus-4.6",
@@ -155,29 +120,9 @@
         "price": 10.0
       },
       {
-        "model": "mistralai/mistral-medium-3.1",
-        "capability": 58.8,
-        "price": 0.8
-      },
-      {
-        "model": "openai/gpt-oss-120b",
-        "capability": 78.2,
-        "price": 0.07425
-      },
-      {
-        "model": "openai/gpt-oss-20b",
-        "capability": 68.8,
-        "price": 0.05675000000000001
-      },
-      {
-        "model": "meta-llama/llama-4-maverick",
-        "capability": 67.1,
-        "price": 0.26249999999999996
-      },
-      {
-        "model": "google/gemma-3-12b-it",
-        "capability": 34.9,
-        "price": 0.075
+        "model": "anthropic/claude-opus-4.8",
+        "capability": 93.6,
+        "price": 10.0
       },
       {
         "model": "deepseek/deepseek-r1",
@@ -185,57 +130,112 @@
         "price": 1.15
       },
       {
-        "model": "anthropic/claude-3.5-haiku",
-        "capability": 40.8,
-        "price": 1.6
+        "model": "deepseek/deepseek-v4-pro",
+        "capability": 88.8,
+        "price": 0.5828125
       },
       {
-        "model": "meta-llama/llama-3.1-8b-instruct",
-        "capability": 25.9,
-        "price": 0.0225
+        "model": "google/gemini-3.1-pro-preview",
+        "capability": 94.1,
+        "price": 4.5
+      },
+      {
+        "model": "google/gemma-3-12b-it",
+        "capability": 34.9,
+        "price": 0.06875
       },
       {
         "model": "meta-llama/llama-3.1-70b-instruct",
         "capability": 40.9,
-        "price": 0.39999999999999997
+        "price": 0.4
+      },
+      {
+        "model": "meta-llama/llama-3.1-8b-instruct",
+        "capability": 25.9,
+        "price": 0.031725
+      },
+      {
+        "model": "meta-llama/llama-4-maverick",
+        "capability": 67.1,
+        "price": 0.26249999999999996
+      },
+      {
+        "model": "minimax/minimax-m3",
+        "capability": 92.9,
+        "price": 0.5249999999999999
+      },
+      {
+        "model": "mistralai/mistral-medium-3.1",
+        "capability": 58.8,
+        "price": 0.8
+      },
+      {
+        "model": "moonshotai/kimi-k2.6",
+        "capability": 91.1,
+        "price": 1.444375
+      },
+      {
+        "model": "openai/gpt-5.5",
+        "capability": 93.5,
+        "price": 11.25
+      },
+      {
+        "model": "openai/gpt-oss-120b",
+        "capability": 78.2,
+        "price": 0.162125
+      },
+      {
+        "model": "openai/gpt-oss-20b",
+        "capability": 68.8,
+        "price": 0.064
+      },
+      {
+        "model": "qwen/qwen3.7-max",
+        "capability": 92.3,
+        "price": 1.875
+      },
+      {
+        "model": "z-ai/glm-5.1",
+        "capability": 86.2,
+        "price": 1.58375
       }
     ],
     "frontier": [
       [
         25,
-        0.05675000000000001
+        0.064
       ],
       [
         30,
-        0.05675000000000001
+        0.064
       ],
       [
         35,
-        0.05675000000000001
+        0.162125
       ],
       [
         40,
-        0.05675000000000001
+        0.162125
       ],
       [
         45,
-        0.05675000000000001
+        0.162125
       ],
       [
         50,
-        0.05675000000000001
+        0.162125
       ],
       [
         55,
-        0.05675000000000001
+        0.162125
       ],
       [
         60,
-        0.05675000000000001
+        0.162125
       ],
       [
         65,
-        0.05675000000000001
+        0.162125
       ],
       [
         70,
@@ -255,7 +255,7 @@
       ],
       [
         90,
-        1.3625
+        1.444375
       ]
     ],
     "trend": {
@@ -287,6 +287,38 @@
         [
           "2026-06-13",
           1.3625
+        ],
+        [
+          "2026-06-16",
+          1.4315625
+        ],
+        [
+          "2026-06-17",
+          1.4315625
+        ],
+        [
+          "2026-06-19",
+          1.4390625
+        ],
+        [
+          "2026-06-20",
+          1.4390625
+        ],
+        [
+          "2026-06-21",
+          1.37
+        ],
+        [
+          "2026-06-22",
+          1.4353125
+        ],
+        [
+          "2026-06-23",
+          1.444375
+        ],
+        [
+          "2026-06-24",
+          1.444375
         ]
       ],
       "strong": [
@@ -316,6 +348,38 @@
         ],
         [
           "2026-06-13",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-16",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-17",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-19",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-20",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-21",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-22",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-23",
+          0.5249999999999999
+        ],
+        [
+          "2026-06-24",
           0.5249999999999999
         ]
       ],
@@ -347,6 +411,38 @@
         [
           "2026-06-13",
           0.05675000000000001
+        ],
+        [
+          "2026-06-16",
+          0.162125
+        ],
+        [
+          "2026-06-17",
+          0.162125
+        ],
+        [
+          "2026-06-19",
+          0.162125
+        ],
+        [
+          "2026-06-20",
+          0.162125
+        ],
+        [
+          "2026-06-21",
+          0.05675000000000001
+        ],
+        [
+          "2026-06-22",
+          0.162125
+        ],
+        [
+          "2026-06-23",
+          0.162125
+        ],
+        [
+          "2026-06-24",
+          0.162125
         ]
       ]
     }
