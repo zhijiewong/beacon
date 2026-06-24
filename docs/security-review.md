@@ -21,7 +21,7 @@ BEACON + rewardToken = trusted standard ERC-20s set at deploy/governance time).
 | 4 | Changing `rewardToken` strands unclaimed rewards in the old token; old token then rescuable | Medium | **Fixed in source** (set-once) — redeploy pending |
 | 5 | `finalizeRound` makes external `slash` calls before clearing round state | Low (non-exploitable w/ non-hook token) | **Fixed + deployed** (CEI + `nonReentrant`) |
 | 6 | `finalizeRound` unbounded loop over publishers | Low | **Fixed in source** (`maxPublishersPerRound` cap) — redeploy pending |
-| 7 | Rounding dust in unbonding (`totalUnbonding` vs per-staker scale) | Low | Add invariant tests |
+| 7 | Rounding dust in unbonding (`totalUnbonding` vs per-staker scale) + reward accounting | Low | **Addressed** — Foundry invariants bound the dust (≤1 wei/settle, never material under-collateralization) |
 | 8 | Owner is a single highly-privileged key (slash, pause, params, distribute) | Informational | Multisig + timelock before mainnet |
 | 9 | Slasher has no per-time rate limit (5%/call, repeatable) | Informational | Acceptable; document |
 
@@ -173,7 +173,8 @@ No high/medium issues. Re-run Slither after any contract change before the audit
 - [x] **Coordinated hardening redeploy** done on Base Sepolia (Findings 4/5/6 live; slasher
       re-wired; consumer redeployed + re-verified).
 - [ ] Ownership → multisig + timelock; split slasher/owner roles (Finding 8).
-- [x] Foundry invariant/fuzz suite for the staking vault — **solvency** + **no-over-claim** hold
-      across 8,192 randomized stake/unstake/withdraw/slash calls (`onchain/test/foundry/`).
-      Extend to reward-accounting solvency next.
+- [x] Foundry invariant/fuzz suite for the staking vault — **solvency**, **no-over-claim**, and
+      **reward-solvency** (held reward-token ≥ Σ pending, up to ≤1 wei/settle floor dust) hold
+      across 8,192 randomized stake/unstake/withdraw/slash/distribute/claim calls
+      (`onchain/test/foundry/`), plus a deterministic reward companion test.
 - [x] Static analysis (Slither) pass — triaged; 1 fixed (interface inheritance), rest intentional/bounded (see above).

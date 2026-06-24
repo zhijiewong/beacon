@@ -11,12 +11,29 @@ import {BeaconToken} from "../../contracts/BeaconToken.sol";
 contract StakingHandler is Test {
     BeaconStaking public staking;
     BeaconToken public token;
+    BeaconToken public reward; // reward token (e.g. stand-in for USDC)
+    address public owner; // staking owner (funds + distributes rewards)
     address[] public actors; // stakers (pre-funded + approved in the test setUp)
     address[] public pubs; // publishers with a live pool (self-staked in setUp)
 
-    constructor(BeaconStaking s_, BeaconToken t_, address[] memory actors_, address[] memory pubs_) {
+    /// Count of successful state-mutating staking interactions. Each one performs at most one
+    /// reward `_settle`, whose floored `accrued - rewardDebt` can over-bank ≤1 wei. So the
+    /// cumulative reward over-owe vs. the held balance is bounded by `mutations` wei — the
+    /// tolerance the reward-solvency invariant allows for MasterChef-style rounding dust.
+    uint256 public mutations;
+
+    constructor(
+        BeaconStaking s_,
+        BeaconToken t_,
+        BeaconToken reward_,
+        address owner_,
+        address[] memory actors_,
+        address[] memory pubs_
+    ) {
         staking = s_;
         token = t_;
+        reward = reward_;
+        owner = owner_;
         actors = actors_;
         pubs = pubs_;
     }
@@ -36,7 +53,7 @@ contract StakingHandler is Test {
         if (bal == 0) return;
         amount = bound(amount, 1, bal);
         vm.prank(a);
-        try staking.delegate(p, amount) {} catch {}
+        try staking.delegate(p, amount) { mutations++; } catch {}
     }
 
     function selfStakeMore(uint256 pSeed, uint256 amount) external {
@@ -45,7 +62,7 @@ contract StakingHandler is Test {
         if (bal == 0) return;
         amount = bound(amount, 1, bal);
         vm.prank(p);
-        try staking.selfStake(amount) {} catch {}
+        try staking.selfStake(amount) { mutations++; } catch {}
     }
 
     function requestUnstake(uint256 aSeed, uint256 pSeed, uint256 amount) external {
@@ -55,20 +72,36 @@ contract StakingHandler is Test {
         if (staked == 0) return;
         amount = bound(amount, 1, staked);
         vm.prank(a);
-        try staking.requestUnstake(p, amount) {} catch {}
+        try staking.requestUnstake(p, amount) { mutations++; } catch {}
     }
 
     function withdraw(uint256 aSeed, uint256 pSeed) external {
         address a = _actor(aSeed);
         address p = _pub(pSeed);
         vm.prank(a);
-        try staking.withdraw(p) {} catch {}
+        try staking.withdraw(p) { mutations++; } catch {}
     }
 
     function slash(uint256 pSeed, uint256 bps) external {
         address p = _pub(pSeed);
         bps = bound(bps, 1, 500); // <= MAX_SLASH_BPS
-        try staking.slash(p, bps) {} catch {}
+        try staking.slash(p, bps) { mutations++; } catch {}
+    }
+
+    function distributeRewards(uint256 pSeed, uint256 amount) external {
+        address p = _pub(pSeed);
+        uint256 bal = reward.balanceOf(owner);
+        if (bal == 0) return;
+        amount = bound(amount, 1, bal);
+        vm.prank(owner);
+        try staking.distributeRewards(p, amount) { mutations++; } catch {}
+    }
+
+    function claim(uint256 aSeed, uint256 pSeed) external {
+        address a = _actor(aSeed);
+        address p = _pub(pSeed);
+        vm.prank(a);
+        try staking.claim(p) { mutations++; } catch {}
     }
 
     function warp(uint256 secs) external {

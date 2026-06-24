@@ -86,6 +86,9 @@ test, `[C]` = guaranteed by construction/modifier.
 - **S5 — Principal protection.** `rescueTokens` reverts for `beacon` and `rewardToken`; no owner
   path transfers staked principal or owed rewards out. `[U][C]`
 - **S6 — Reward-token immutability.** `setRewardToken` succeeds at most once. `[U][C require rewardToken == 0]`
+- **S7 — Reward solvency.** The contract holds at least the reward-token it owes,
+  `rewardToken.balanceOf(staking) ≥ Σ_pools Σ_stakers pendingRewards`, up to bounded
+  floor-division dust (≤1 wei per settle). `[F invariant_rewardSolvent + test_rewardSolvency_concrete]`
 
 ### Oracle integrity
 - **O1 — Eligibility gate.** Only `isEligiblePublisher` accounts can `postFeed`. `[U][C]`
@@ -142,6 +145,7 @@ test, `[C]` = guaranteed by construction/modifier.
 
 - `onchain/test/*.test.js` (token, staking, slashing, rewards, oracle v2, consumer) — Hardhat
   unit + integration (`npx hardhat test`).
-- `onchain/test/foundry/BeaconStaking.invariant.t.sol` — vault solvency/over-claim invariants
-  (`forge test`), fuzzing stake/delegate/unstake/withdraw/slash across 4 actors / 2 publishers.
+- `onchain/test/foundry/BeaconStaking.invariant.t.sol` — vault solvency, no-over-claim, and
+  reward-solvency invariants + a deterministic reward companion (`forge test`), fuzzing
+  stake/delegate/unstake/withdraw/slash/distribute/claim across 4 actors / 2 publishers.
 - `.github/workflows/ci.yml` — runs Python, Hardhat+Foundry, and Slither on every push.
