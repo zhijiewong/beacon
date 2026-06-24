@@ -99,6 +99,8 @@ cp .env.example .env                          # add a THROWAWAY testnet key (nev
 - [`docs/methodology.md`](docs/methodology.md) — how every published number is constructed.
 - [`docs/phase2-onchain-oracle-design.md`](docs/phase2-onchain-oracle-design.md) — the on-chain
   design, security model, and §13 testnet build log.
+- [`docs/spec.md`](docs/spec.md) — formal spec: invariants, trust model, state transitions, and
+  the parameter table (the audit's reference document).
 - [`data/README.md`](data/README.md) — what's real (prices) vs. scaffold (benchmarks).
 
 ## The honest framing

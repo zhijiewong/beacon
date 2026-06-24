@@ -116,7 +116,8 @@ operational mitigations (stake-weight caps, publisher vetting) or contract-level
   re-review pass, and a public summary we can cite for the rate's credibility.
 - **Engagement size estimate:** ~600 LoC core, modest complexity, well-documented + 54 tests — we
   expect a small-to-medium engagement; please quote duration + cost against commit `a4ad688`.
-- **Access:** public repo; we can walk through the design doc
+- **Access:** public repo; the formal spec ([`docs/spec.md`](./spec.md)) states the invariants,
+  trust model, and parameter bounds to scope against, and we can walk through the design doc
   ([`docs/phase2-onchain-oracle-design.md`](./phase2-onchain-oracle-design.md)) and methodology on a call.
 - **Timeline:** flexible; mainnet is gated on this audit, so it's on the critical path but not rushed.
 - **Open question for the firm:** do you also offer economic/mechanism review (the OIS staking
